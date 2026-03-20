@@ -1,0 +1,23 @@
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.cache
+*.nupkg
+*.yak
+packages/
+yak_stage/
+
+# Sample/test IFC files (large binary files)
+samplefiles/
+
+# Editor and OS artifacts
+nul
+.DS_Store
+Thumbs.db
+*.swp
+
+# Claude Code internal
+.claude/
+CLAUDE_CODE_PROMPTS.md

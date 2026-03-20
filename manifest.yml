@@ -1,0 +1,12 @@
+name: rhinoifc
+version: 0.1.0
+authors:
+  - RhinoIfc Contributors
+description: Simple IFC import/export plugin for Rhino using xBIM
+url: ""
+keywords:
+  - ifc
+  - bim
+  - import
+  - export
+  - xbim
