@@ -12,6 +12,7 @@ using Xbim.Common.XbimExtensions;
 using Xbim.Ifc;
 using Xbim.Ifc4.Interfaces;
 using Xbim.ModelGeometry.Scene;
+using RhinoIfc.Import.Geometry;
 using RhinoIfc.Util;
 
 namespace RhinoIfc.Import
@@ -63,6 +64,62 @@ namespace RhinoIfc.Import
                     : null;
                 var layerMapper = new LayerMapper(doc, model, parentLayerName, options.FileIndex);
 
+                // ----- Parametric Brep pre-pass -----
+                // Try to convert each product's Body representation to a real
+                // Brep first. Anything that succeeds is recorded in
+                // handledProductLabels and skipped by the mesh fallback below.
+                var convCtx = new ConversionContext(model, scaleFactor, doc.ModelAbsoluteTolerance);
+                var handledProductLabels = new HashSet<int>();
+
+                foreach (var product in model.Instances.OfType<IIfcProduct>())
+                {
+                    if (product is IIfcSpatialStructureElement) continue;
+                    if (product is IIfcSpace) continue;
+                    if (product is IIfcZone) continue;
+                    if (product is IIfcOpeningElement) continue; // consumed via host's HasOpenings
+
+                    try
+                    {
+                        if (!IfcGeometryConverter.TryConvertProduct(product, convCtx, out var breps))
+                            continue;
+
+                        bool addedAny = false;
+                        foreach (var brep in breps)
+                        {
+                            if (brep == null || !brep.IsValid) continue;
+
+                            var attributes = new ObjectAttributes();
+                            attributes.Name = product.Name?.ToString() ?? product.ExpressType.ExpressName;
+
+                            int layerIndex = layerMapper.GetOrCreateLayer(product);
+                            if (layerIndex >= 0)
+                                attributes.LayerIndex = layerIndex;
+
+                            var id = doc.Objects.AddBrep(brep, attributes);
+                            if (id != Guid.Empty)
+                            {
+                                var obj = doc.Objects.FindId(id);
+                                if (obj != null)
+                                    MetadataMapper.AttachMetadata(obj, product);
+
+                                result.ObjectIds.Add(id);
+                                result.ElementCount++;
+                                addedAny = true;
+                            }
+                        }
+
+                        if (addedAny)
+                            handledProductLabels.Add(product.EntityLabel);
+                    }
+                    catch (Exception ex)
+                    {
+                        errors++;
+                        string name = product.Name?.ToString() ?? $"#{product.EntityLabel}";
+                        RhinoApp.WriteLine($"Warning: Brep conversion failed for '{name}': {ex.Message}");
+                        // Fall through — the mesh pass below will handle this product.
+                    }
+                }
+
                 var shapes = context.ShapeInstances().ToList();
                 int total = shapes.Count;
                 int processed = 0;
@@ -79,6 +136,10 @@ namespace RhinoIfc.Import
 
                         if (shapeInstance.RepresentationType ==
                             XbimGeometryRepresentationType.OpeningsAndAdditionsExcluded)
+                            continue;
+
+                        // Skip products already handled by the parametric Brep pre-pass.
+                        if (handledProductLabels.Contains(shapeInstance.IfcProductLabel))
                             continue;
 
                         var product = model.Instances[shapeInstance.IfcProductLabel] as IIfcProduct;
