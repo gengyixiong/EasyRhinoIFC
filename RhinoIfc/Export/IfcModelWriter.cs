@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Rhino;
 using Rhino.DocObjects;
-using Rhino.Geometry;
 using Xbim.Common;
 using Xbim.Common.Step21;
 using Xbim.Ifc;
@@ -105,7 +104,7 @@ namespace RhinoIfc.Export
                         int seq = 0;
                         foreach (var rhinoObj in objects)
                         {
-                            var meshes = ExtractMeshes(rhinoObj);
+                            var meshes = InstanceMeshExtractor.Extract(rhinoObj);
                             if (meshes == null || meshes.Length == 0) continue;
 
                             string layerFullPath = doc.Layers[rhinoObj.Attributes.LayerIndex].FullPath;
@@ -206,55 +205,6 @@ namespace RhinoIfc.Export
             }
 
             return count;
-        }
-
-        private static Mesh[] ExtractMeshes(RhinoObject obj)
-        {
-            if (obj.Geometry is Point || obj.Geometry is TextDot ||
-                obj.Geometry is AnnotationBase || obj.Geometry is Light)
-                return null;
-
-            if (obj.Geometry is Mesh m)
-            {
-                CleanMesh(m);
-                return new[] { m };
-            }
-
-            if (obj.Geometry is Brep brep)
-            {
-                var meshes = Mesh.CreateFromBrep(brep, MeshingParameters.Default);
-                if (meshes == null || meshes.Length == 0) return null;
-                foreach (var mesh in meshes) CleanMesh(mesh);
-                return meshes;
-            }
-
-            if (obj.Geometry is Extrusion ext)
-            {
-                var b = ext.ToBrep();
-                if (b == null) return null;
-                var meshes = Mesh.CreateFromBrep(b, MeshingParameters.Default);
-                if (meshes == null || meshes.Length == 0) return null;
-                foreach (var mesh in meshes) CleanMesh(mesh);
-                return meshes;
-            }
-
-            if (obj.Geometry is SubD subd)
-            {
-                var b = subd.ToBrep(SubDToBrepOptions.Default);
-                if (b == null) return null;
-                var meshes = Mesh.CreateFromBrep(b, MeshingParameters.Default);
-                if (meshes == null || meshes.Length == 0) return null;
-                foreach (var mesh in meshes) CleanMesh(mesh);
-                return meshes;
-            }
-
-            return null;
-        }
-
-        private static void CleanMesh(Mesh mesh)
-        {
-            mesh.Vertices.CombineIdentical(true, true);
-            mesh.Faces.CullDegenerateFaces();
         }
 
         private static IfcProduct CreateElement(IfcStore model, string ifcClassName, string name)

@@ -62,7 +62,7 @@ The Grasshopper plugin (`GH_RhinoIfc.dll` / `.gha`) is built alongside the Rhino
 |---------|-------------|
 | `IfcImport` | Import a single IFC file as Rhino meshes with layers, colors, and metadata |
 | `IfcImportMulti` | Import multiple IFC files at once with configurable grouping (see below) |
-| `IfcExport` | Export Rhino objects to IFC4 with automatic class mapping from layer names |
+| `IfcExport` | Export Rhino objects, including nested Block instances, to IFC4 with automatic class mapping from layer names |
 
 ### IfcImportMulti
 
