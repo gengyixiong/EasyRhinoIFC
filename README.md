@@ -8,7 +8,7 @@ Uses [xBIM](https://docs.xbim.net/) to import IFC2x3 and IFC4 files and export I
 
 ### Option A: From Releases (recommended)
 
-1. Go to the [Releases](../../releases) page
+1. Go to the [Releases](https://github.com/gengyixiong/RhinoIfc/releases) page
 2. Download the latest `.zip` file
 3. Extract to a permanent folder (e.g. `C:\Users\YourName\AppData\Roaming\McNeel\Rhinoceros\8.0\Plug-ins\RhinoIfc\`)
 4. In Rhino, run `_PlugInManager`, click **Install**, and browse to `RhinoIfc.rhp`
@@ -24,7 +24,7 @@ Uses [xBIM](https://docs.xbim.net/) to import IFC2x3 and IFC4 files and export I
 **Steps:**
 
 ```
-git clone https://github.com/jacobblitzer/RhinoIfc.git
+git clone https://github.com/gengyixiong/RhinoIfc.git
 cd RhinoIfc
 dotnet restore
 dotnet build -c Release
