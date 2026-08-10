@@ -35,7 +35,7 @@ namespace RhinoIfc.Export
                 ApplicationDevelopersName = "RhinoIfc",
                 ApplicationFullName = "RhinoIfc Plugin",
                 ApplicationIdentifier = "RhinoIfc",
-                ApplicationVersion = "0.1.2",
+                ApplicationVersion = "0.1.3",
                 EditorsFamilyName = System.Environment.UserName,
                 EditorsGivenName = "",
                 EditorsOrganisationName = ""

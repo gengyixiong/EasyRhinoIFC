@@ -2,7 +2,7 @@
 
 Simple IFC import/export plugin for Rhino 8 (Windows) with Grasshopper components.
 
-Uses [xBIM](https://docs.xbim.net/) to import IFC2x3 and IFC4 files and export IFC4 files. Supported parametric geometry is imported as Rhino Breps, with mesh fallback for other geometry. Spatial-hierarchy layers, colors, and IFC metadata are preserved where supported.
+Uses [xBIM](https://docs.xbim.net/) to import IFC2x3 and IFC4 files and export IFC4 files. Supported parametric geometry is imported as Rhino Breps, with mesh fallback for other geometry. IFC export supports ordinary Rhino geometry and nested Block instances. Spatial-hierarchy layers, colors, and IFC metadata are preserved where supported.
 
 ## Download and Install
 
