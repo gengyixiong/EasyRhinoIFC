@@ -57,7 +57,7 @@ namespace RhinoIfc.Import
                 var context = new Xbim3DModelContext(model);
                 context.CreateContext();
 
-                double scaleFactor = UnitConverter.MetresToRhino(doc.ModelUnitSystem);
+                double scaleFactor = UnitConverter.IfcModelToRhino(model, doc.ModelUnitSystem);
 
                 string parentLayerName = options.Grouping == GroupingMode.ByFile
                     ? options.ParentLayerName

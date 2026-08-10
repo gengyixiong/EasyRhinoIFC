@@ -5,7 +5,7 @@
     <LangVersion>latest</LangVersion>
     <Title>GH_RhinoIfc</Title>
     <Description>Grasshopper components for IFC import/export</Description>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>

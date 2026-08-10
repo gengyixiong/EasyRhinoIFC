@@ -29,14 +29,14 @@ namespace RhinoIfc.Export
     /// </summary>
     public class IfcModelWriter
     {
-        public int Export(RhinoDoc doc, IEnumerable<RhinoObject> objects, string outputPath, bool useIfc4 = true)
+        public int Export(RhinoDoc doc, IEnumerable<RhinoObject> objects, string outputPath)
         {
             var editor = new XbimEditorCredentials
             {
                 ApplicationDevelopersName = "RhinoIfc",
                 ApplicationFullName = "RhinoIfc Plugin",
                 ApplicationIdentifier = "RhinoIfc",
-                ApplicationVersion = "0.1.0",
+                ApplicationVersion = "0.1.1",
                 EditorsFamilyName = System.Environment.UserName,
                 EditorsGivenName = "",
                 EditorsOrganisationName = ""
@@ -45,8 +45,7 @@ namespace RhinoIfc.Export
             int count = 0;
             double unitScale = UnitConverter.RhinoToMetres(doc.ModelUnitSystem);
 
-            var schema = useIfc4 ? XbimSchemaVersion.Ifc4 : XbimSchemaVersion.Ifc2X3;
-            using (var model = IfcStore.Create(editor, schema, XbimStoreType.InMemoryModel))
+            using (var model = IfcStore.Create(editor, XbimSchemaVersion.Ifc4, XbimStoreType.InMemoryModel))
             {
                 using (var txn = model.BeginTransaction("Init"))
                 {
