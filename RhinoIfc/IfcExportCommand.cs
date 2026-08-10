@@ -51,19 +51,6 @@ namespace RhinoIfc
                 }
             }
 
-            // Schema version option
-            var goSchema = new GetOption();
-            goSchema.SetCommandPrompt("IFC schema version");
-            int ifc4Idx = goSchema.AddOption("IFC4");
-            int ifc2x3Idx = goSchema.AddOption("IFC2x3");
-            goSchema.SetDefaultString("IFC4");
-            goSchema.Get();
-
-            if (goSchema.CommandResult() != Result.Success)
-                return goSchema.CommandResult();
-
-            bool useIfc4 = (goSchema.OptionIndex() != ifc2x3Idx);
-
             var fd = new Rhino.UI.SaveFileDialog
             {
                 Filter = "IFC files (*.ifc)|*.ifc",
@@ -76,8 +63,8 @@ namespace RhinoIfc
             try
             {
                 var writer = new IfcModelWriter();
-                int count = writer.Export(doc, objects, fd.FileName, useIfc4);
-                RhinoApp.WriteLine($"Exported {count} elements to {fd.FileName} ({(useIfc4 ? "IFC4" : "IFC2x3")})");
+                int count = writer.Export(doc, objects, fd.FileName);
+                RhinoApp.WriteLine($"Exported {count} elements to {fd.FileName} (IFC4)");
                 return Result.Success;
             }
             catch (Exception ex)

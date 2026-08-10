@@ -1,10 +1,11 @@
+using System;
 using Rhino;
+using Xbim.Common;
 
 namespace RhinoIfc.Util
 {
     /// <summary>
-    /// Converts between Rhino document units and IFC internal units (metres).
-    /// IFC always stores geometry in metres. Rhino documents can use any unit system.
+    /// Converts between Rhino document units, metres, and the declared units of an IFC model.
     /// </summary>
     public static class UnitConverter
     {
@@ -36,6 +37,21 @@ namespace RhinoIfc.Util
         public static double MetresToRhino(UnitSystem unit)
         {
             return 1.0 / RhinoToMetres(unit);
+        }
+
+        /// <summary>
+        /// Returns the scale factor from the IFC model's declared length unit to
+        /// the active Rhino document unit. xBIM geometry and raw IFC measures are
+        /// expressed in model units, which are not necessarily metres.
+        /// </summary>
+        public static double IfcModelToRhino(IModel model, UnitSystem rhinoUnit)
+        {
+            if (model == null)
+                throw new ArgumentNullException(nameof(model));
+
+            return UnitScale.ModelToTarget(
+                model.ModelFactors.LengthToMetresConversionFactor,
+                MetresToRhino(rhinoUnit));
         }
     }
 }

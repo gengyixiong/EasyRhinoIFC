@@ -61,7 +61,8 @@ namespace GH_RhinoIfc
                     var context = new Xbim3DModelContext(model);
                     context.CreateContext();
 
-                    double scaleFactor = UnitConverter.MetresToRhino(
+                    double scaleFactor = UnitConverter.IfcModelToRhino(
+                        model,
                         Rhino.RhinoDoc.ActiveDoc?.ModelUnitSystem ?? Rhino.UnitSystem.Meters);
 
                     // Group elements by storey for DataTree branches

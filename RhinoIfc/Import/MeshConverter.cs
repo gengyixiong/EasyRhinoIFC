@@ -16,7 +16,7 @@ namespace RhinoIfc.Import
         /// </summary>
         /// <param name="shapeData">Raw binary mesh blob from IXbimShapeGeometryData.ShapeData</param>
         /// <param name="transform">4×4 placement matrix from the ShapeInstance</param>
-        /// <param name="scaleFactor">Multiplier from IFC metres to Rhino doc units</param>
+        /// <param name="scaleFactor">Multiplier from the IFC model's declared unit to Rhino doc units</param>
         public static Mesh Convert(byte[] shapeData, XbimMatrix3D transform, double scaleFactor)
         {
             // Parse the binary mesh format

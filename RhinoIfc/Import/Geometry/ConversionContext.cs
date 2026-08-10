@@ -15,8 +15,8 @@ namespace RhinoIfc.Import.Geometry
         public IModel Model { get; }
 
         /// <summary>
-        /// Multiplier to convert IFC length units (metres internally in xBIM)
-        /// into the active Rhino document's unit system.
+        /// Multiplier to convert the IFC model's declared length unit into the
+        /// active Rhino document's unit system.
         /// </summary>
         public double UnitScale { get; }
 

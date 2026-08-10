@@ -26,6 +26,15 @@ namespace RhinoIfc.Tests
     {
         static void Main(string[] args)
         {
+            Console.WriteLine("=== Phase 0: Validate unit-scale composition ===");
+            ValidateUnitScaleComposition();
+
+            Console.WriteLine();
+            Console.WriteLine("=== Phase 0b: Validate millimetre IFC geometry scale ===");
+            string millimetreFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "test_millimetres.ifc");
+            CreateMinimalIfc(millimetreFile, useMillimetres: true);
+            ValidateMillimetreIfcScale(millimetreFile);
+
             string testFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "test_wall_slab.ifc");
 
             Console.WriteLine("=== Phase 1: Create minimal IFC file ===");
@@ -53,7 +62,66 @@ namespace RhinoIfc.Tests
             Console.WriteLine("  and confirm the parametric elements come in as Breps (not meshes).");
         }
 
-        static void CreateMinimalIfc(string outputPath)
+        static void ValidateUnitScaleComposition()
+        {
+            AssertNear(RhinoIfc.Util.UnitScale.ModelToTarget(1.0, 1000.0), 1000.0,
+                "metre IFC to millimetre Rhino");
+            AssertNear(RhinoIfc.Util.UnitScale.ModelToTarget(0.001, 1000.0), 1.0,
+                "millimetre IFC to millimetre Rhino");
+            AssertNear(RhinoIfc.Util.UnitScale.ModelToTarget(0.3048, 1000.0), 304.8,
+                "foot IFC to millimetre Rhino");
+            AssertNear(RhinoIfc.Util.UnitScale.ModelToTarget(0.001, 1.0), 0.001,
+                "millimetre IFC to metre Rhino");
+
+            Console.WriteLine("  Unit-scale composition validated.");
+        }
+
+        static void ValidateMillimetreIfcScale(string filePath)
+        {
+            using (var model = IfcStore.Open(filePath))
+            {
+                double modelUnitsToMetres = model.ModelFactors.LengthToMetresConversionFactor;
+                AssertNear(modelUnitsToMetres, 0.001, "xBIM millimetre model factor");
+
+                var context = new Xbim3DModelContext(model);
+                context.CreateContext();
+
+                var wallShape = context.ShapeInstances().First(si =>
+                {
+                    var product = model.Instances[si.IfcProductLabel] as IIfcProduct;
+                    return product?.Name?.ToString() == "Test Wall" &&
+                           si.RepresentationType != XbimGeometryRepresentationType.OpeningsAndAdditionsExcluded;
+                });
+
+                var shapeGeometry = context.ShapeGeometry(wallShape);
+                var shapeData = ((IXbimShapeGeometryData)shapeGeometry).ShapeData;
+                XbimShapeTriangulation triangulation;
+                using (var ms = new MemoryStream(shapeData))
+                using (var reader = new BinaryReader(ms))
+                {
+                    triangulation = reader.ReadShapeTriangulation();
+                }
+
+                double rawWidth = triangulation.Vertices.Max(v => v.X) -
+                                  triangulation.Vertices.Min(v => v.X);
+                double modelToRhinoMillimetres = RhinoIfc.Util.UnitScale.ModelToTarget(
+                    modelUnitsToMetres, 1000.0);
+
+                AssertNear(rawWidth, 4000.0, "raw millimetre IFC wall width");
+                AssertNear(rawWidth * modelToRhinoMillimetres, 4000.0,
+                    "millimetre IFC wall width in millimetre Rhino document");
+            }
+
+            Console.WriteLine("  Millimetre IFC geometry scale validated.");
+        }
+
+        static void AssertNear(double actual, double expected, string scenario)
+        {
+            if (Math.Abs(actual - expected) > 1e-9)
+                throw new Exception($"Unit scale failed for {scenario}: expected {expected}, got {actual}");
+        }
+
+        static void CreateMinimalIfc(string outputPath, bool useMillimetres = false)
         {
             var creds = new XbimEditorCredentials
             {
@@ -75,6 +143,14 @@ namespace RhinoIfc.Tests
                         p.Name = "Test Project";
                         p.Initialize(ProjectUnits.SIUnitsUK);
                     });
+
+                    if (useMillimetres)
+                    {
+                        project.UnitsInContext.SetSiLengthUnits(
+                            IfcSIUnitName.METRE, IfcSIPrefix.MILLI);
+                    }
+
+                    double lengthScale = useMillimetres ? 1000.0 : 1.0;
 
                     var site = model.Instances.New<IfcSite>(s =>
                     {
@@ -114,14 +190,16 @@ namespace RhinoIfc.Tests
 
                     // Wall: simple box 4m x 0.2m x 3m
                     var wall = model.Instances.New<IfcWall>(w => w.Name = "Test Wall");
-                    wall.Representation = CreateBoxRepresentation(model, ctx, 4.0, 0.2, 3.0);
+                    wall.Representation = CreateBoxRepresentation(
+                        model, ctx, 4.0 * lengthScale, 0.2 * lengthScale, 3.0 * lengthScale);
                     wall.ObjectPlacement = CreateLocalPlacement(model, 0, 0, 0);
                     Contain(model, storey, wall);
 
                     // Slab: 6m x 4m x 0.3m
                     var slab = model.Instances.New<IfcSlab>(s => s.Name = "Test Slab");
-                    slab.Representation = CreateBoxRepresentation(model, ctx, 6.0, 4.0, 0.3);
-                    slab.ObjectPlacement = CreateLocalPlacement(model, 0, 0, -0.3);
+                    slab.Representation = CreateBoxRepresentation(
+                        model, ctx, 6.0 * lengthScale, 4.0 * lengthScale, 0.3 * lengthScale);
+                    slab.ObjectPlacement = CreateLocalPlacement(model, 0, 0, -0.3 * lengthScale);
                     Contain(model, storey, slab);
 
                     txn.Commit();
