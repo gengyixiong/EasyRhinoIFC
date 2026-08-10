@@ -52,7 +52,7 @@ namespace RhinoIfc.Export
                     var project = model.Instances.New<IfcProject>(p =>
                     {
                         p.Name = doc.Name ?? "Rhino Export";
-                        p.Initialize(ProjectUnits.SIUnitsUK);
+                        IfcProjectUnits.InitializeMetres(p);
                     });
 
                     var site = model.Instances.New<IfcSite>(s =>
