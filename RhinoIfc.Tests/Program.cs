@@ -41,6 +41,10 @@ namespace RhinoIfc.Tests
             CreateMetreExportFixture(metreExportFile);
             ValidateMetreExportScale(metreExportFile);
 
+            Console.WriteLine();
+            Console.WriteLine("=== Phase 0d: Validate block instance traversal ===");
+            ValidateBlockInstanceTraversal();
+
             string testFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "test_wall_slab.ifc");
 
             Console.WriteLine("=== Phase 1: Create minimal IFC file ===");
@@ -172,6 +176,80 @@ namespace RhinoIfc.Tests
                 throw new Exception("Exported IFC does not declare an unprefixed metre length unit");
 
             Console.WriteLine("  Exported metre declaration and 21-foot-5-inch width validated.");
+        }
+
+        static void ValidateBlockInstanceTraversal()
+        {
+            var leaf = new TestInstanceNode("Leaf");
+            var nested = new TestInstanceNode("Nested", 2, 5, leaf);
+            var outer = new TestInstanceNode("Outer", 1, 10, nested);
+            var visits = new System.Collections.Generic.List<string>();
+
+            TraverseTestInstances(outer, visits);
+            if (visits.Count != 1 || visits[0] != "Leaf@15")
+                throw new Exception("Nested block transform accumulation failed");
+
+            visits.Clear();
+            var first = new TestInstanceNode("First", 3, 100, leaf);
+            var second = new TestInstanceNode("Second", 3, 200, leaf);
+            var root = new TestInstanceNode("Root", 4, 0, first, second);
+            TraverseTestInstances(root, visits);
+            visits.Sort(StringComparer.Ordinal);
+            if (visits.Count != 2 || visits[0] != "Leaf@100" || visits[1] != "Leaf@200")
+                throw new Exception("Repeated block instances were not traversed independently");
+
+            visits.Clear();
+            var cycleA = new TestInstanceNode("Cycle A", 5, 1);
+            var cycleB = new TestInstanceNode("Cycle B", 6, 1, cycleA);
+            cycleA.Children.Add(cycleB);
+            TraverseTestInstances(cycleA, visits);
+            if (visits.Count != 0)
+                throw new Exception("Cyclic block definition guard failed");
+
+            Console.WriteLine("  Nested blocks, repeated instances, and cycle protection validated.");
+        }
+
+        static void TraverseTestInstances(
+            TestInstanceNode root,
+            System.Collections.Generic.List<string> visits)
+        {
+            RhinoIfc.Export.InstanceGraphTraversal.Traverse<TestInstanceNode, int, int>(
+                root,
+                0,
+                node => node.IsInstance,
+                node => node.DefinitionKey,
+                node => node.Children,
+                node => node.Transform,
+                (parent, child) => parent + child,
+                (node, transform) => visits.Add($"{node.Name}@{transform}"));
+        }
+
+        sealed class TestInstanceNode
+        {
+            public string Name { get; }
+            public bool IsInstance { get; }
+            public int DefinitionKey { get; }
+            public int Transform { get; }
+            public System.Collections.Generic.List<TestInstanceNode> Children { get; }
+
+            public TestInstanceNode(string name)
+            {
+                Name = name;
+                Children = new System.Collections.Generic.List<TestInstanceNode>();
+            }
+
+            public TestInstanceNode(
+                string name,
+                int definitionKey,
+                int transform,
+                params TestInstanceNode[] children)
+            {
+                Name = name;
+                IsInstance = true;
+                DefinitionKey = definitionKey;
+                Transform = transform;
+                Children = new System.Collections.Generic.List<TestInstanceNode>(children);
+            }
         }
 
         static void AssertNear(double actual, double expected, string scenario)

@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <Compile Include="..\RhinoIfc\Export\IfcProjectUnits.cs" Link="Export\IfcProjectUnits.cs" />
+    <Compile Include="..\RhinoIfc\Export\InstanceGraphTraversal.cs" Link="Export\InstanceGraphTraversal.cs" />
     <Compile Include="..\RhinoIfc\Util\UnitScale.cs" Link="Util\UnitScale.cs" />
   </ItemGroup>
 
