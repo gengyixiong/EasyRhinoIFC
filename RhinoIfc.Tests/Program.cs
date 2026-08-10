@@ -35,6 +35,12 @@ namespace RhinoIfc.Tests
             CreateMinimalIfc(millimetreFile, useMillimetres: true);
             ValidateMillimetreIfcScale(millimetreFile);
 
+            Console.WriteLine();
+            Console.WriteLine("=== Phase 0c: Validate exported metre declaration ===");
+            string metreExportFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "test_export_metres.ifc");
+            CreateMetreExportFixture(metreExportFile);
+            ValidateMetreExportScale(metreExportFile);
+
             string testFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "test_wall_slab.ifc");
 
             Console.WriteLine("=== Phase 1: Create minimal IFC file ===");
@@ -113,6 +119,59 @@ namespace RhinoIfc.Tests
             }
 
             Console.WriteLine("  Millimetre IFC geometry scale validated.");
+        }
+
+        static void CreateMetreExportFixture(string outputPath)
+        {
+            var creds = new XbimEditorCredentials
+            {
+                ApplicationDevelopersName = "RhinoIfc",
+                ApplicationFullName = "RhinoIfc Export Unit Test",
+                ApplicationIdentifier = "RhinoIfc",
+                ApplicationVersion = "0.1.1",
+                EditorsFamilyName = "Test",
+                EditorsGivenName = "",
+                EditorsOrganisationName = ""
+            };
+
+            using (var model = IfcStore.Create(creds, XbimSchemaVersion.Ifc4, XbimStoreType.InMemoryModel))
+            {
+                using (var txn = model.BeginTransaction("Create metre export fixture"))
+                {
+                    model.Instances.New<IfcProject>(p =>
+                    {
+                        p.Name = "Metre Export Test";
+                        RhinoIfc.Export.IfcProjectUnits.InitializeMetres(p);
+                    });
+
+                    model.Instances.New<IfcCartesianPoint>(p => p.SetXYZ(0, 0, 0));
+                    model.Instances.New<IfcCartesianPoint>(p => p.SetXYZ(6.5278, 0, 0));
+                    txn.Commit();
+                }
+
+                model.SaveAs(outputPath, StorageType.Ifc);
+            }
+        }
+
+        static void ValidateMetreExportScale(string filePath)
+        {
+            using (var model = IfcStore.Open(filePath))
+            {
+                double modelUnitsToMetres = model.ModelFactors.LengthToMetresConversionFactor;
+                AssertNear(modelUnitsToMetres, 1.0, "exported IFC metre model factor");
+
+                var points = model.Instances.OfType<IIfcCartesianPoint>().ToList();
+                double rawWidth = points.Max(p => p.X) - points.Min(p => p.X);
+                AssertNear(rawWidth, 6.5278, "raw exported 21-foot-5-inch width");
+                AssertNear(rawWidth * modelUnitsToMetres, 6.5278,
+                    "exported 21-foot-5-inch width in metres");
+            }
+
+            string step = File.ReadAllText(filePath);
+            if (!step.Contains(".LENGTHUNIT.,$,.METRE."))
+                throw new Exception("Exported IFC does not declare an unprefixed metre length unit");
+
+            Console.WriteLine("  Exported metre declaration and 21-foot-5-inch width validated.");
         }
 
         static void AssertNear(double actual, double expected, string scenario)

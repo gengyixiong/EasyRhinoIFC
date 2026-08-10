@@ -92,7 +92,7 @@ namespace GH_RhinoIfc
                         var project = model.Instances.New<IfcProject>(p =>
                         {
                             p.Name = "Grasshopper Export";
-                            p.Initialize(ProjectUnits.SIUnitsUK);
+                            IfcProjectUnits.InitializeMetres(p);
                         });
 
                         var site = model.Instances.New<IfcSite>(s =>
