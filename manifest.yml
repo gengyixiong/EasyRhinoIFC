@@ -1,5 +1,5 @@
 name: rhinoifc
-version: 0.1.1
+version: 0.1.2
 authors:
   - RhinoIfc Contributors
 description: Simple IFC import/export plugin for Rhino using xBIM

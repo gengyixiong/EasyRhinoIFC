@@ -128,7 +128,7 @@ namespace RhinoIfc.Tests
                 ApplicationDevelopersName = "RhinoIfc",
                 ApplicationFullName = "RhinoIfc Export Unit Test",
                 ApplicationIdentifier = "RhinoIfc",
-                ApplicationVersion = "0.1.1",
+                ApplicationVersion = "0.1.2",
                 EditorsFamilyName = "Test",
                 EditorsGivenName = "",
                 EditorsOrganisationName = ""
@@ -187,7 +187,7 @@ namespace RhinoIfc.Tests
                 ApplicationDevelopersName = "RhinoIfc",
                 ApplicationFullName = "RhinoIfc Test",
                 ApplicationIdentifier = "RhinoIfc",
-                ApplicationVersion = "0.1.1",
+                ApplicationVersion = "0.1.2",
                 EditorsFamilyName = "Test",
                 EditorsGivenName = "",
                 EditorsOrganisationName = ""
@@ -377,7 +377,7 @@ namespace RhinoIfc.Tests
                 ApplicationDevelopersName = "RhinoIfc",
                 ApplicationFullName = "RhinoIfc Test",
                 ApplicationIdentifier = "RhinoIfc",
-                ApplicationVersion = "0.1.1",
+                ApplicationVersion = "0.1.2",
                 EditorsFamilyName = "Test",
                 EditorsGivenName = "",
                 EditorsOrganisationName = ""
