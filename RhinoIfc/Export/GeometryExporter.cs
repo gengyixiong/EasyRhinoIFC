@@ -1,25 +1,92 @@
-using System.Collections.Generic;
+using System;
+using System.Linq;
 using Rhino.Geometry;
 using Xbim.Ifc;
 using Xbim.Ifc4.GeometricModelResource;
 using Xbim.Ifc4.GeometryResource;
 using Xbim.Ifc4.Interfaces;
 using Xbim.Ifc4.RepresentationResource;
-using Xbim.Ifc4.TopologyResource;
 
 namespace RhinoIfc.Export
 {
     /// <summary>
-    /// Converts Rhino mesh geometry into IFC IfcFacetedBrep representations.
-    ///
-    /// IfcFacetedBrep is the simplest solid representation in IFC and is universally
-    /// supported by all IFC viewers. It consists of:
-    ///   IfcFacetedBrep → IfcClosedShell → [IfcFace → IfcFaceOuterBound → IfcPolyLoop → [IfcCartesianPoint]]
+    /// Converts Rhino meshes into indexed IFC triangulated face sets.
     /// </summary>
     public static class GeometryExporter
     {
+        public static IfcShapeRepresentation CreatePlanarBrepRepresentation(
+            IfcStore model,
+            IIfcGeometricRepresentationContext context,
+            Brep brep,
+            double unitScale,
+            double tolerance)
+        {
+            if (brep == null || !brep.IsValid || brep.Vertices.Count < 3 ||
+                brep.Faces.Count == 0 ||
+                brep.Faces.Any(face => !face.IsPlanar(tolerance)) ||
+                brep.Edges.Any(edge => !edge.IsLinear(tolerance)))
+                return null;
+
+            foreach (var face in brep.Faces)
+            {
+                if (face.OuterLoop == null || face.Loops.Any(loop =>
+                    (loop.LoopType != BrepLoopType.Outer && loop.LoopType != BrepLoopType.Inner) ||
+                    loop.Trims.Count < 3 || loop.Trims.Any(trim => trim.Edge == null || trim.StartVertex == null)))
+                    return null;
+            }
+
+            var coordinates = model.Instances.New<IfcCartesianPointList3D>();
+            foreach (var vertex in brep.Vertices)
+            {
+                var point = coordinates.CoordList.GetAt(coordinates.CoordList.Count);
+                point.Add(Math.Round(vertex.Location.X * unitScale, 5));
+                point.Add(Math.Round(vertex.Location.Y * unitScale, 5));
+                point.Add(Math.Round(vertex.Location.Z * unitScale, 5));
+            }
+
+            var faceSet = model.Instances.New<IfcPolygonalFaceSet>(fs =>
+            {
+                fs.Coordinates = coordinates;
+                fs.Closed = brep.IsSolid;
+            });
+
+            foreach (var brepFace in brep.Faces)
+            {
+                var outer = GetLoopIndices(brepFace.OuterLoop, brepFace.OrientationIsReversed);
+                var innerLoops = brepFace.Loops
+                    .Where(loop => loop.LoopType == BrepLoopType.Inner)
+                    .ToArray();
+
+                IfcIndexedPolygonalFace face;
+                if (innerLoops.Length == 0)
+                {
+                    face = model.Instances.New<IfcIndexedPolygonalFace>(f =>
+                    {
+                        foreach (var index in outer) f.CoordIndex.Add(index);
+                    });
+                }
+                else
+                {
+                    face = model.Instances.New<IfcIndexedPolygonalFaceWithVoids>(f =>
+                    {
+                        foreach (var index in outer) f.CoordIndex.Add(index);
+                        foreach (var loop in innerLoops)
+                        {
+                            var inner = f.InnerCoordIndices.GetAt(f.InnerCoordIndices.Count);
+                            foreach (var index in GetLoopIndices(loop, brepFace.OrientationIsReversed))
+                                inner.Add(index);
+                        }
+                    });
+                }
+
+                faceSet.Faces.Add(face);
+            }
+
+            return CreateShapeRepresentation(model, context, faceSet);
+        }
+
         /// <summary>
-        /// Create an IfcShapeRepresentation containing IfcFacetedBrep from Rhino meshes.
+        /// Create an IfcShapeRepresentation containing one indexed triangulated face set.
         /// </summary>
         /// <param name="model">xBIM model instance</param>
         /// <param name="context">The 3D geometric representation context</param>
@@ -31,75 +98,76 @@ namespace RhinoIfc.Export
             Mesh[] meshes,
             double unitScale)
         {
-            var allFaces = new List<IfcFace>();
+            if (meshes == null) return null;
 
-            foreach (var mesh in meshes)
+            var validMeshes = meshes
+                .Where(m => m != null && m.Vertices.Count > 0 && m.Faces.Count > 0)
+                .ToArray();
+            if (validMeshes.Length == 0) return null;
+
+            var coordinates = model.Instances.New<IfcCartesianPointList3D>();
+            var faceSet = model.Instances.New<IfcTriangulatedFaceSet>(fs =>
             {
-                if (mesh == null || mesh.Vertices.Count == 0) continue;
+                fs.Coordinates = coordinates;
+                fs.Closed = validMeshes.All(m => m.IsClosed);
+            });
 
-                // Build IFC cartesian points for all vertices in this mesh
-                var points = new List<IfcCartesianPoint>(mesh.Vertices.Count);
+            int vertexOffset = 0;
+
+            foreach (var mesh in validMeshes)
+            {
                 for (int i = 0; i < mesh.Vertices.Count; i++)
                 {
                     var v = mesh.Vertices[i];
-                    var pt = model.Instances.New<IfcCartesianPoint>(p =>
-                    {
-                        p.SetXYZ(v.X * unitScale, v.Y * unitScale, v.Z * unitScale);
-                    });
-                    points.Add(pt);
+                    var point = coordinates.CoordList.GetAt(coordinates.CoordList.Count);
+                    point.Add(Math.Round(v.X * unitScale, 5));
+                    point.Add(Math.Round(v.Y * unitScale, 5));
+                    point.Add(Math.Round(v.Z * unitScale, 5));
                 }
 
-                // Build IFC faces from mesh face list
                 for (int i = 0; i < mesh.Faces.Count; i++)
                 {
                     var mf = mesh.Faces[i];
-
-                    // Create the polygon loop
-                    var polyLoop = model.Instances.New<IfcPolyLoop>(pl =>
-                    {
-                        pl.Polygon.Add(points[mf.A]);
-                        pl.Polygon.Add(points[mf.B]);
-                        pl.Polygon.Add(points[mf.C]);
-                        if (mf.IsQuad)
-                            pl.Polygon.Add(points[mf.D]);
-                    });
-
-                    var outerBound = model.Instances.New<IfcFaceOuterBound>(b =>
-                    {
-                        b.Bound = polyLoop;
-                        b.Orientation = true;
-                    });
-
-                    allFaces.Add(model.Instances.New<IfcFace>(f =>
-                    {
-                        f.Bounds.Add(outerBound);
-                    }));
+                    AddTriangle(faceSet, vertexOffset + mf.A + 1,
+                        vertexOffset + mf.B + 1, vertexOffset + mf.C + 1);
+                    if (mf.IsQuad)
+                        AddTriangle(faceSet, vertexOffset + mf.A + 1,
+                            vertexOffset + mf.C + 1, vertexOffset + mf.D + 1);
                 }
+
+                vertexOffset += mesh.Vertices.Count;
             }
 
-            if (allFaces.Count == 0) return null;
+            return CreateShapeRepresentation(model, context, faceSet);
+        }
 
-            // Closed shell from all faces
-            var shell = model.Instances.New<IfcClosedShell>(s =>
-            {
-                foreach (var f in allFaces)
-                    s.CfsFaces.Add(f);
-            });
-
-            // Faceted BRep
-            var brep = model.Instances.New<IfcFacetedBrep>(b =>
-            {
-                b.Outer = shell;
-            });
-
-            // Wrap in shape representation
+        private static IfcShapeRepresentation CreateShapeRepresentation(
+            IfcStore model,
+            IIfcGeometricRepresentationContext context,
+            IfcTessellatedItem item)
+        {
             return model.Instances.New<IfcShapeRepresentation>(sr =>
             {
                 sr.ContextOfItems = (IfcRepresentationContext)context;
                 sr.RepresentationIdentifier = "Body";
-                sr.RepresentationType = "Brep";
-                sr.Items.Add(brep);
+                sr.RepresentationType = "Tessellation";
+                sr.Items.Add(item);
             });
+        }
+
+        private static int[] GetLoopIndices(BrepLoop loop, bool reverse)
+        {
+            var indices = loop.Trims.Select(trim => trim.StartVertex.VertexIndex + 1).ToArray();
+            if (reverse) Array.Reverse(indices);
+            return indices;
+        }
+
+        private static void AddTriangle(IfcTriangulatedFaceSet faceSet, int a, int b, int c)
+        {
+            var triangle = faceSet.CoordIndex.GetAt(faceSet.CoordIndex.Count);
+            triangle.Add(a);
+            triangle.Add(b);
+            triangle.Add(c);
         }
     }
 }

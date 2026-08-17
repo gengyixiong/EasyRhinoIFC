@@ -78,7 +78,7 @@ namespace GH_RhinoIfc
                     ApplicationDevelopersName = "RhinoIfc",
                     ApplicationFullName = "RhinoIfc GH",
                     ApplicationIdentifier = "RhinoIfc",
-                    ApplicationVersion = "0.1.3",
+                    ApplicationVersion = "0.1.11",
                     EditorsFamilyName = System.Environment.UserName,
                     EditorsGivenName = "",
                     EditorsOrganisationName = ""
@@ -87,6 +87,8 @@ namespace GH_RhinoIfc
                 int count = 0;
                 using (var model = IfcStore.Create(creds, XbimSchemaVersion.Ifc4, XbimStoreType.InMemoryModel))
                 {
+                    IfcBuildingStorey storey;
+                    IfcGeometricRepresentationContext geomContext;
                     using (var txn = model.BeginTransaction("Init"))
                     {
                         var project = model.Instances.New<IfcProject>(p =>
@@ -107,7 +109,7 @@ namespace GH_RhinoIfc
                             b.CompositionType = IfcElementCompositionEnum.ELEMENT;
                         });
 
-                        var storey = model.Instances.New<IfcBuildingStorey>(s =>
+                        storey = model.Instances.New<IfcBuildingStorey>(s =>
                         {
                             s.Name = "Default Storey";
                             s.CompositionType = IfcElementCompositionEnum.ELEMENT;
@@ -130,7 +132,7 @@ namespace GH_RhinoIfc
                             r.RelatedObjects.Add(storey);
                         });
 
-                        var geomContext = model.Instances.New<IfcGeometricRepresentationContext>(c =>
+                        geomContext = model.Instances.New<IfcGeometricRepresentationContext>(c =>
                         {
                             c.ContextType = "Model";
                             c.CoordinateSpaceDimension = 3;
@@ -142,56 +144,58 @@ namespace GH_RhinoIfc
                         });
 
                         txn.Commit();
-
-                        using (var txn2 = model.BeginTransaction("Elements"))
-                        {
-                            var containRel = model.Instances.New<IfcRelContainedInSpatialStructure>(r =>
-                            {
-                                r.RelatingStructure = storey;
-                            });
-
-                            for (int i = 0; i < meshes.Count; i++)
-                            {
-                                var ghMesh = meshes[i];
-                                if (ghMesh?.Value == null) continue;
-
-                                string name = (i < names.Count && names[i]?.Value != null)
-                                    ? names[i].Value : $"Element {i + 1}";
-
-                                string ifcClass = (i < classes.Count && classes[i]?.Value != null)
-                                    ? classes[i].Value : "IfcBuildingElementProxy";
-
-                                var element = CreateElement(model, ifcClass, name);
-
-                                var representation = GeometryExporter.CreateRepresentation(
-                                    model, geomContext, new[] { ghMesh.Value }, unitScale);
-
-                                if (representation != null)
-                                {
-                                    element.Representation = model.Instances.New<IfcProductDefinitionShape>(pds =>
-                                    {
-                                        pds.Representations.Add(representation);
-                                    });
-                                }
-
-                                element.ObjectPlacement = model.Instances.New<IfcLocalPlacement>(lp =>
-                                {
-                                    lp.RelativePlacement = model.Instances.New<IfcAxis2Placement3D>(a =>
-                                    {
-                                        a.Location = model.Instances.New<IfcCartesianPoint>(p =>
-                                            p.SetXYZ(0, 0, 0));
-                                    });
-                                });
-
-                                containRel.RelatedElements.Add(element);
-                                count++;
-                            }
-
-                            txn2.Commit();
-                        }
                     }
 
-                    model.SaveAs(filePath, StorageType.Ifc);
+                    using (var txn2 = model.BeginTransaction("Elements"))
+                    {
+                        var containRel = model.Instances.New<IfcRelContainedInSpatialStructure>(r =>
+                        {
+                            r.RelatingStructure = storey;
+                        });
+
+                        for (int i = 0; i < meshes.Count; i++)
+                        {
+                            var ghMesh = meshes[i];
+                            if (ghMesh?.Value == null) continue;
+
+                            string name = (i < names.Count && names[i]?.Value != null)
+                                ? names[i].Value : $"Element {i + 1}";
+
+                            string ifcClass = (i < classes.Count && classes[i]?.Value != null)
+                                ? classes[i].Value : "IfcBuildingElementProxy";
+
+                            var element = CreateElement(model, ifcClass, name);
+
+                            var representation = GeometryExporter.CreateRepresentation(
+                                model, geomContext, new[] { ghMesh.Value }, unitScale);
+
+                            if (representation != null)
+                            {
+                                element.Representation = model.Instances.New<IfcProductDefinitionShape>(pds =>
+                                {
+                                    pds.Representations.Add(representation);
+                                });
+                            }
+
+                            element.ObjectPlacement = model.Instances.New<IfcLocalPlacement>(lp =>
+                            {
+                                lp.RelativePlacement = model.Instances.New<IfcAxis2Placement3D>(a =>
+                                {
+                                    a.Location = model.Instances.New<IfcCartesianPoint>(p =>
+                                        p.SetXYZ(0, 0, 0));
+                                });
+                            });
+
+                            containRel.RelatedElements.Add(element);
+                            count++;
+                        }
+
+                        txn2.Commit();
+                    }
+
+                    model.SaveAs(filePath, filePath.EndsWith(".ifczip", StringComparison.OrdinalIgnoreCase)
+                        ? StorageType.IfcZip
+                        : StorageType.Ifc);
                 }
 
                 DA.SetData(0, $"Exported {count} elements to {filePath}");

@@ -28,7 +28,7 @@ namespace RhinoIfc.Export
 
             var c = color.Value;
 
-            // Find the first representation item (the IfcFacetedBrep)
+            // Find the first representation item
             IfcRepresentationItem repItem = null;
             foreach (var item in representation.Items)
             {

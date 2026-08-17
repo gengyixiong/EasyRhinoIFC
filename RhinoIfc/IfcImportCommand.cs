@@ -13,7 +13,7 @@ namespace RhinoIfc
         {
             var fd = new Rhino.UI.OpenFileDialog
             {
-                Filter = "IFC files (*.ifc)|*.ifc|All files (*.*)|*.*",
+                Filter = "IFC files (*.ifc;*.ifczip)|*.ifc;*.ifczip|All files (*.*)|*.*",
                 Title = "Import IFC"
             };
 

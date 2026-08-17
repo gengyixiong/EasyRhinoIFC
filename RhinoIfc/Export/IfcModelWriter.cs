@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Rhino;
 using Rhino.DocObjects;
+using Rhino.Geometry;
 using Xbim.Common;
 using Xbim.Common.Step21;
 using Xbim.Ifc;
@@ -35,7 +36,7 @@ namespace RhinoIfc.Export
                 ApplicationDevelopersName = "RhinoIfc",
                 ApplicationFullName = "RhinoIfc Plugin",
                 ApplicationIdentifier = "RhinoIfc",
-                ApplicationVersion = "0.1.3",
+                ApplicationVersion = "0.1.11",
                 EditorsFamilyName = System.Environment.UserName,
                 EditorsGivenName = "",
                 EditorsOrganisationName = ""
@@ -46,6 +47,8 @@ namespace RhinoIfc.Export
 
             using (var model = IfcStore.Create(editor, XbimSchemaVersion.Ifc4, XbimStoreType.InMemoryModel))
             {
+                IfcSite site;
+                IfcGeometricRepresentationContext geomContext;
                 using (var txn = model.BeginTransaction("Init"))
                 {
                     var project = model.Instances.New<IfcProject>(p =>
@@ -54,7 +57,7 @@ namespace RhinoIfc.Export
                         IfcProjectUnits.InitializeMetres(p);
                     });
 
-                    var site = model.Instances.New<IfcSite>(s =>
+                    site = model.Instances.New<IfcSite>(s =>
                     {
                         s.Name = "Default Site";
                         s.CompositionType = IfcElementCompositionEnum.ELEMENT;
@@ -62,7 +65,7 @@ namespace RhinoIfc.Export
 
                     CreateAggregation(model, project, site);
 
-                    var geomContext = model.Instances.New<IfcGeometricRepresentationContext>(c =>
+                    geomContext = model.Instances.New<IfcGeometricRepresentationContext>(c =>
                     {
                         c.ContextType = "Model";
                         c.CoordinateSpaceDimension = 3;
@@ -75,133 +78,153 @@ namespace RhinoIfc.Export
                     });
 
                     txn.Commit();
+                }
 
-                    // Caches for dynamic spatial structure
-                    var buildingCache = new Dictionary<string, IfcBuilding>(StringComparer.OrdinalIgnoreCase);
-                    var storeyCache = new Dictionary<string, IfcBuildingStorey>(StringComparer.OrdinalIgnoreCase);
+                // Caches for dynamic spatial structure
+                var buildingCache = new Dictionary<string, IfcBuilding>(StringComparer.OrdinalIgnoreCase);
+                var storeyCache = new Dictionary<string, IfcBuildingStorey>(StringComparer.OrdinalIgnoreCase);
 
-                    using (var txn2 = model.BeginTransaction("Elements"))
+                using (var txn2 = model.BeginTransaction("Elements"))
+                {
+                    // Create a default building+storey for shallow hierarchies
+                    var defaultBuilding = model.Instances.New<IfcBuilding>(b =>
                     {
-                        // Create a default building+storey for shallow hierarchies
-                        var defaultBuilding = model.Instances.New<IfcBuilding>(b =>
+                        b.Name = "Default Building";
+                        b.CompositionType = IfcElementCompositionEnum.ELEMENT;
+                    });
+                    CreateAggregation(model, site, defaultBuilding);
+
+                    var defaultStorey = model.Instances.New<IfcBuildingStorey>(s =>
+                    {
+                        s.Name = "Default Storey";
+                        s.CompositionType = IfcElementCompositionEnum.ELEMENT;
+                        s.Elevation = 0;
+                    });
+                    CreateAggregation(model, defaultBuilding, defaultStorey);
+
+                    buildingCache[""] = defaultBuilding;
+                    storeyCache[""] = defaultStorey;
+
+                    int seq = 0;
+                    foreach (var rhinoObj in objects)
+                    {
+                        IfcShapeRepresentation representation = null;
+                        if (rhinoObj.Geometry is Brep brep)
                         {
-                            b.Name = "Default Building";
-                            b.CompositionType = IfcElementCompositionEnum.ELEMENT;
-                        });
-                        CreateAggregation(model, site, defaultBuilding);
+                            representation = GeometryExporter.CreatePlanarBrepRepresentation(
+                                model, geomContext, brep, unitScale, doc.ModelAbsoluteTolerance);
+                        }
 
-                        var defaultStorey = model.Instances.New<IfcBuildingStorey>(s =>
-                        {
-                            s.Name = "Default Storey";
-                            s.CompositionType = IfcElementCompositionEnum.ELEMENT;
-                            s.Elevation = 0;
-                        });
-                        CreateAggregation(model, defaultBuilding, defaultStorey);
-
-                        buildingCache[""] = defaultBuilding;
-                        storeyCache[""] = defaultStorey;
-
-                        int seq = 0;
-                        foreach (var rhinoObj in objects)
+                        if (representation == null)
                         {
                             var meshes = InstanceMeshExtractor.Extract(rhinoObj);
                             if (meshes == null || meshes.Length == 0) continue;
 
-                            string layerFullPath = doc.Layers[rhinoObj.Attributes.LayerIndex].FullPath;
-                            var segments = layerFullPath
-                                .Split(new[] { "::" }, StringSplitOptions.RemoveEmptyEntries)
-                                .Select(s => s.Trim())
-                                .ToArray();
-
-                            // Resolve spatial container from layer depth
-                            IfcBuildingStorey targetStorey;
-                            string ifcClassName;
-
-                            if (segments.Length >= 3)
+                            try
                             {
-                                // segments[0] → building, segments[1] → storey, segments[2+] → class
-                                string bldgName = segments[0];
-                                string storeyName = segments[1];
-                                string storeyKey = $"{bldgName}::{storeyName}";
-
-                                if (!buildingCache.TryGetValue(bldgName, out var bldg))
-                                {
-                                    bldg = model.Instances.New<IfcBuilding>(b =>
-                                    {
-                                        b.Name = bldgName;
-                                        b.CompositionType = IfcElementCompositionEnum.ELEMENT;
-                                    });
-                                    CreateAggregation(model, site, bldg);
-                                    buildingCache[bldgName] = bldg;
-                                }
-
-                                if (!storeyCache.TryGetValue(storeyKey, out targetStorey))
-                                {
-                                    targetStorey = model.Instances.New<IfcBuildingStorey>(s =>
-                                    {
-                                        s.Name = storeyName;
-                                        s.CompositionType = IfcElementCompositionEnum.ELEMENT;
-                                        s.Elevation = 0;
-                                    });
-                                    CreateAggregation(model, bldg, targetStorey);
-                                    storeyCache[storeyKey] = targetStorey;
-                                }
-
-                                // Use remaining segments for class mapping
-                                string classPart = string.Join("::", segments.Skip(2));
-                                ifcClassName = ClassMapper.MapLayerToIfcClass(classPart);
+                                representation = GeometryExporter.CreateRepresentation(
+                                    model, geomContext, meshes, unitScale);
                             }
-                            else
+                            finally
                             {
-                                // Shallow hierarchy: use defaults
-                                targetStorey = defaultStorey;
-                                ifcClassName = ClassMapper.MapLayerToIfcClass(layerFullPath);
+                                foreach (var mesh in meshes)
+                                    mesh?.Dispose();
                             }
-
-                            string elementName = rhinoObj.Name;
-                            if (string.IsNullOrWhiteSpace(elementName))
-                                elementName = rhinoObj.Attributes.Name;
-                            if (string.IsNullOrWhiteSpace(elementName))
-                            {
-                                string leafLayer = doc.Layers[rhinoObj.Attributes.LayerIndex].Name;
-                                elementName = $"{leafLayer} {++seq}";
-                            }
-
-                            var element = CreateElement(model, ifcClassName, elementName);
-
-                            var representation = GeometryExporter.CreateRepresentation(
-                                model, geomContext, meshes, unitScale);
-
-                            if (representation != null)
-                            {
-                                ColorExporter.ApplyColor(model, doc, rhinoObj, representation);
-
-                                element.Representation = model.Instances.New<IfcProductDefinitionShape>(pds =>
-                                {
-                                    pds.Representations.Add(representation);
-                                });
-                            }
-
-                            element.ObjectPlacement = model.Instances.New<IfcLocalPlacement>(lp =>
-                            {
-                                lp.RelativePlacement = model.Instances.New<IfcAxis2Placement3D>(a =>
-                                {
-                                    a.Location = model.Instances.New<IfcCartesianPoint>(p =>
-                                        p.SetXYZ(0, 0, 0));
-                                });
-                            });
-
-                            AddToContainer(model, targetStorey, element);
-                            PropertyExporter.ExportUserStrings(model, element, rhinoObj);
-
-                            count++;
                         }
 
-                        txn2.Commit();
+                        string layerFullPath = doc.Layers[rhinoObj.Attributes.LayerIndex].FullPath;
+                        var segments = layerFullPath
+                            .Split(new[] { "::" }, StringSplitOptions.RemoveEmptyEntries)
+                            .Select(s => s.Trim())
+                            .ToArray();
+
+                        // Resolve spatial container from layer depth
+                        IfcBuildingStorey targetStorey;
+                        string ifcClassName;
+
+                        if (segments.Length >= 3)
+                        {
+                            // segments[0] → building, segments[1] → storey, segments[2+] → class
+                            string bldgName = segments[0];
+                            string storeyName = segments[1];
+                            string storeyKey = $"{bldgName}::{storeyName}";
+
+                            if (!buildingCache.TryGetValue(bldgName, out var bldg))
+                            {
+                                bldg = model.Instances.New<IfcBuilding>(b =>
+                                {
+                                    b.Name = bldgName;
+                                    b.CompositionType = IfcElementCompositionEnum.ELEMENT;
+                                });
+                                CreateAggregation(model, site, bldg);
+                                buildingCache[bldgName] = bldg;
+                            }
+
+                            if (!storeyCache.TryGetValue(storeyKey, out targetStorey))
+                            {
+                                targetStorey = model.Instances.New<IfcBuildingStorey>(s =>
+                                {
+                                    s.Name = storeyName;
+                                    s.CompositionType = IfcElementCompositionEnum.ELEMENT;
+                                    s.Elevation = 0;
+                                });
+                                CreateAggregation(model, bldg, targetStorey);
+                                storeyCache[storeyKey] = targetStorey;
+                            }
+
+                            // Use remaining segments for class mapping
+                            string classPart = string.Join("::", segments.Skip(2));
+                            ifcClassName = ClassMapper.MapLayerToIfcClass(classPart);
+                        }
+                        else
+                        {
+                            // Shallow hierarchy: use defaults
+                            targetStorey = defaultStorey;
+                            ifcClassName = ClassMapper.MapLayerToIfcClass(layerFullPath);
+                        }
+
+                        string elementName = rhinoObj.Name;
+                        if (string.IsNullOrWhiteSpace(elementName))
+                            elementName = rhinoObj.Attributes.Name;
+                        if (string.IsNullOrWhiteSpace(elementName))
+                        {
+                            string leafLayer = doc.Layers[rhinoObj.Attributes.LayerIndex].Name;
+                            elementName = $"{leafLayer} {++seq}";
+                        }
+
+                        var element = CreateElement(model, ifcClassName, elementName);
+
+                        if (representation != null)
+                        {
+                            ColorExporter.ApplyColor(model, doc, rhinoObj, representation);
+
+                            element.Representation = model.Instances.New<IfcProductDefinitionShape>(pds =>
+                            {
+                                pds.Representations.Add(representation);
+                            });
+                        }
+
+                        element.ObjectPlacement = model.Instances.New<IfcLocalPlacement>(lp =>
+                        {
+                            lp.RelativePlacement = model.Instances.New<IfcAxis2Placement3D>(a =>
+                            {
+                                a.Location = model.Instances.New<IfcCartesianPoint>(p =>
+                                    p.SetXYZ(0, 0, 0));
+                            });
+                        });
+
+                        AddToContainer(model, targetStorey, element);
+                        PropertyExporter.ExportUserStrings(model, element, rhinoObj);
+
+                        count++;
                     }
+
+                    txn2.Commit();
                 }
 
-                model.SaveAs(outputPath, StorageType.Ifc);
+                model.SaveAs(outputPath, outputPath.EndsWith(".ifczip", StringComparison.OrdinalIgnoreCase)
+                    ? StorageType.IfcZip
+                    : StorageType.Ifc);
             }
 
             return count;

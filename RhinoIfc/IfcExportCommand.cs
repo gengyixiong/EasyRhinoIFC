@@ -53,7 +53,7 @@ namespace RhinoIfc
 
             var fd = new Rhino.UI.SaveFileDialog
             {
-                Filter = "IFC files (*.ifc)|*.ifc",
+                Filter = "IFC files (*.ifc)|*.ifc|Compressed IFC files (*.ifczip)|*.ifczip",
                 Title = "Export IFC"
             };
 

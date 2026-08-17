@@ -1,3 +1,4 @@
+using System.Linq;
 using Rhino.DocObjects;
 using Rhino.Geometry;
 
@@ -53,7 +54,7 @@ namespace RhinoIfc.Export
         {
             if (obj == null) return;
 
-            var meshes = CreateMeshes(obj.Geometry);
+            var meshes = CreateMeshes(obj);
             if (meshes == null) return;
 
             foreach (var mesh in meshes)
@@ -63,7 +64,10 @@ namespace RhinoIfc.Export
                 if (!accumulatedTransform.IsIdentity)
                 {
                     if (!mesh.Transform(accumulatedTransform))
+                    {
+                        mesh.Dispose();
                         continue;
+                    }
 
                     // A reflected instance reverses face winding. Restore outward
                     // orientation before writing the IFC closed shell.
@@ -74,11 +78,14 @@ namespace RhinoIfc.Export
                 CleanMesh(mesh);
                 if (mesh.Vertices.Count > 0 && mesh.Faces.Count > 0)
                     result.Add(mesh);
+                else
+                    mesh.Dispose();
             }
         }
 
-        private static Mesh[] CreateMeshes(GeometryBase geometry)
+        private static Mesh[] CreateMeshes(RhinoObject obj)
         {
+            var geometry = obj?.Geometry;
             if (geometry == null || geometry is Point || geometry is TextDot ||
                 geometry is AnnotationBase || geometry is Light)
                 return null;
@@ -86,23 +93,35 @@ namespace RhinoIfc.Export
             if (geometry is Mesh mesh)
                 return new[] { mesh.DuplicateMesh() };
 
+            var parameters = obj.GetRenderMeshParameters() ?? MeshingParameters.FastRenderMesh;
+            var renderMeshes = obj.GetMeshes(MeshType.Render);
+            if ((renderMeshes == null || renderMeshes.Length == 0) &&
+                obj.IsMeshable(MeshType.Render))
+            {
+                obj.CreateMeshes(MeshType.Render, parameters, false);
+                renderMeshes = obj.GetMeshes(MeshType.Render);
+            }
+
+            if (renderMeshes != null && renderMeshes.Length > 0)
+                return renderMeshes.Where(m => m != null).Select(m => m.DuplicateMesh()).ToArray();
+
             if (geometry is Brep brep)
-                return Mesh.CreateFromBrep(brep, MeshingParameters.Default);
+                return Mesh.CreateFromBrep(brep, parameters);
 
             if (geometry is Extrusion extrusion)
             {
-                var extrusionBrep = extrusion.ToBrep();
-                return extrusionBrep == null
-                    ? null
-                    : Mesh.CreateFromBrep(extrusionBrep, MeshingParameters.Default);
+                using (var extrusionBrep = extrusion.ToBrep())
+                    return extrusionBrep == null
+                        ? null
+                        : Mesh.CreateFromBrep(extrusionBrep, parameters);
             }
 
             if (geometry is SubD subd)
             {
-                var subdBrep = subd.ToBrep(SubDToBrepOptions.Default);
-                return subdBrep == null
-                    ? null
-                    : Mesh.CreateFromBrep(subdBrep, MeshingParameters.Default);
+                using (var subdBrep = subd.ToBrep(SubDToBrepOptions.Default))
+                    return subdBrep == null
+                        ? null
+                        : Mesh.CreateFromBrep(subdBrep, parameters);
             }
 
             return null;

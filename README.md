@@ -1,8 +1,8 @@
 # RhinoIfc
 
-Simple IFC import/export plugin for Rhino 8 (Windows) with Grasshopper components.
+IFC4-only import/export plugin for Rhino 8 (Windows) with Grasshopper components.
 
-Uses [xBIM](https://docs.xbim.net/) to import IFC2x3 and IFC4 files and export IFC4 files. Supported parametric geometry is imported as Rhino Breps, with mesh fallback for other geometry. IFC export supports ordinary Rhino geometry and nested Block instances. Spatial-hierarchy layers, colors, and IFC metadata are preserved where supported.
+Uses [xBIM](https://docs.xbim.net/) to import and export IFC4 files. IFC2x3 is not supported. Supported parametric geometry is imported as Rhino Breps, with mesh fallback for other geometry. IFC export supports ordinary Rhino geometry and nested Block instances. Spatial-hierarchy layers, colors, and IFC metadata are preserved where supported.
 
 ## Download and Install
 
@@ -60,9 +60,22 @@ The Grasshopper plugin (`GH_RhinoIfc.dll` / `.gha`) is built alongside the Rhino
 
 | Command | Description |
 |---------|-------------|
-| `IfcImport` | Import a single IFC file as Rhino meshes with layers, colors, and metadata |
-| `IfcImportMulti` | Import multiple IFC files at once with configurable grouping (see below) |
-| `IfcExport` | Export Rhino objects, including nested Block instances, to IFC4 with automatic class mapping from layer names |
+| `IfcImport` | Import a single IFC4 or IFCZIP file as Rhino meshes with layers, colors, and metadata |
+| `IfcImportMulti` | Import multiple IFC4/IFCZIP files at once with configurable grouping (see below) |
+| `IfcExport` | Export Rhino objects, including nested Block instances, to IFC4 or IFCZIP with automatic class mapping from layer names |
+
+## IFC4 export optimizations
+
+Version 0.1.11 focuses on reducing export size and peak memory use:
+
+- Planar Breps use `IfcPolygonalFaceSet` directly from Brep topology instead of repeating faceted geometry.
+- Mesh fallback uses indexed `IfcTriangulatedFaceSet` coordinates, sharing vertices across triangles.
+- Rhino cached Render Meshes are reused; fallback meshing follows the document/object render settings.
+- Coordinates are rounded to the declared model precision (1e-5 m), and temporary meshes are disposed deterministically.
+- Export and import support compressed `.ifczip` files as well as plain `.ifc` files.
+- Export transactions are sequential, avoiding nested xBIM transactions during large-file export.
+
+IFC2x3 is intentionally out of scope for this release. Nested Block instances are supported, but are currently flattened rather than emitted as reusable `IfcMappedItem` representations.
 
 ### IfcImportMulti
 
