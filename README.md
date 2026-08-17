@@ -1,62 +1,42 @@
 # RhinoIfc
 
-RhinoIfc v0.2.0 is an IFC4 export-only plugin for Rhino 8 on Windows, with a Grasshopper export component.
+RhinoIfc is an export-only IFC4 plugin for Rhino 8 on Windows. It exports Rhino geometry and nested Block instances through xBIM to `.ifc` or `.ifczip` files. A Grasshopper component is included for mesh-based IFC export.
 
-Rhino geometry and nested Block instances are exported through xBIM as IFC4 or IFCZIP. Rhino layer suffixes provide a lightweight IFC classification system, while colors, object user strings, and the source layer path are preserved where supported.
+IFC import is not included in v0.2.0.
 
-## What's new in v0.2.0
+## Install the release
 
-- Removed the `IfcImport` and `IfcImportMulti` commands, the Grasshopper import component, and import-only geometry dependencies.
-- Added automatic IFC4 classification from the final suffix in a Rhino layer name.
-- Added all requested common IFC4 element mappings, including stairs, ramps, coverings, structural members, furniture, openings, and proxies.
-- Built `IfcProject` → `IfcSite` → `IfcBuilding` → `IfcBuildingStorey` from recognized spatial layer suffixes, while allowing organizational layers in between.
-- Preserved every exported object's full Rhino layer path as `RhinoProperties.SourceLayer`.
-- The release package is export-only and no longer ships the xBIM import geometry engine.
+1. Download the latest [RhinoIfc release](https://github.com/gengyixiong/RhinoIfc/releases/latest).
+2. Extract the complete ZIP to a permanent folder. Keep `RhinoIfc.rhp` and all DLLs together.
+3. In Rhino, run `_PlugInManager`, choose **Install**, and select the extracted `RhinoIfc.rhp`.
+4. Restart Rhino.
+5. Run `_IfcExport`.
 
-## Install the release package
+The optional Grasshopper component is `GH_RhinoIfc.dll`. Copy it to `%APPDATA%\Grasshopper\Libraries\` and restart Grasshopper. If your Grasshopper installation requires it, rename the file to `GH_RhinoIfc.gha` after copying.
 
-Download and extract [RhinoIfc-v0.2.0.zip](https://github.com/gengyixiong/RhinoIfc/releases/latest) to a permanent folder. The ZIP contains `RhinoIfc.rhp` and its managed dependencies in one flat folder.
+## Use the Rhino exporter
 
-1. In Rhino, run `_PlugInManager`.
-2. Click **Install** and select the extracted `RhinoIfc.rhp`.
-3. Restart Rhino.
-4. Run `_IfcExport`, choose `All` or `Selected`, and save an `.ifc` or `.ifczip` file.
+1. Put each object on a Rhino layer whose final suffix identifies its IFC class (see below).
+2. Run `_IfcExport`.
+3. Choose **All** or **Selected**.
+4. Choose an output path ending in `.ifc` or `.ifczip`.
 
-The Grasshopper assembly is available as `GH_RhinoIfc.dll` in the build output. Copy it to `%APPDATA%\Grasshopper\Libraries\` and rename it to `GH_RhinoIfc.gha` if desired. The Grasshopper component accepts explicit IFC class names; automatic layer classification applies to the Rhino `_IfcExport` command.
+The exporter uses the object's direct layer for classification, converts Rhino units to IFC metres, keeps nested Block geometry in world coordinates, and preserves Rhino object colors and user strings where supported.
 
-## Build from source
+## Layer names and IFC classes
 
-Requirements: .NET Framework 4.8 Developer Pack and .NET SDK 6.0 or newer.
-
-```text
-dotnet restore
-dotnet build RhinoIfc.sln -c Release
-```
-
-The plugin is written to `RhinoIfc\bin\Release\RhinoIfc.rhp`; the Grasshopper assembly is written to `GH_RhinoIfc\bin\Release\GH_RhinoIfc.dll`.
-
-To build a Yak package, install the Yak CLI and run `build.bat`.
-
-## Rhino command
-
-| Command | Description |
-|---|---|
-| `IfcExport` | Export all or selected Rhino objects to IFC4/IFCZIP |
-
-## Layer naming rule for IFC classes
-
-Use this exact form for a BIM element layer:
+Name an element layer as:
 
 ```text
-<descriptive layer name>-<IFC keyword>
+<descriptive name>-<IFC keyword>
 ```
 
-The exporter applies four rules:
+The rules are:
 
-1. It uses the **object's direct Rhino layer**, not a parent layer.
-2. It takes the text after the **last hyphen** (`-`) only.
-3. Matching is case-insensitive, so `-Wall`, `-wall`, and `-WALL` are equivalent.
-4. A missing or unknown keyword is not guessed; the existing `IfcBuildingElementProxy` fallback is used.
+- The object's **direct layer** is used; a parent layer does not classify its children.
+- Only the text after the **last `-`** in that layer name is read.
+- Keywords are case-insensitive (`-Wall`, `-wall`, and `-WALL` are equivalent).
+- A missing or unknown keyword falls back to `IfcBuildingElementProxy`; it is never guessed.
 
 Examples:
 
@@ -67,11 +47,11 @@ Ground Floor-Slab                          -> IfcSlab
 Main Roof-roof                             -> IfcRoof
 Entrance Doors-DOOR                        -> IfcDoor
 Level 01-Storey::Exterior::Windows-Window  -> IfcWindow
-Mechanical Equipment-Equipment             -> fallback IfcBuildingElementProxy
-Reference                                   -> fallback IfcBuildingElementProxy
+Mechanical Equipment-Equipment             -> IfcBuildingElementProxy
+Reference                                   -> IfcBuildingElementProxy
 ```
 
-The earlier hyphens are part of the descriptive name. For `Existing-Building-Exterior-Wall`, the keyword is `Wall`, not `Building` or `Exterior`.
+In `Existing-Building-Exterior-Wall`, `Wall` is the keyword. The earlier hyphens are simply part of the descriptive name.
 
 ### Supported IFC4 keywords
 
@@ -93,41 +73,56 @@ The earlier hyphens are part of the descriptive name. For `Existing-Building-Ext
 | `FurnishingElement` | `IfcFurnishingElement` | `BuildingElementPart` | `IfcBuildingElementPart` |
 | `Proxy` | `IfcBuildingElementProxy` | `BuildingElementProxy` | `IfcBuildingElementProxy` |
 
-## Spatial hierarchy from layers
+## Recommended Rhino layer structure
 
-The suffixes `-Project`, `-Site`, `-Building`, `-Storey`, and `-BuildingStorey` create the IFC spatial hierarchy from the Rhino parent/child layer path. Layers without a recognized suffix are organizational only and may appear anywhere in between.
+Use parent/child layers for spatial organization. Add `-Project`, `-Site`, `-Building`, and `-Storey` to the layers that should become IFC spatial nodes. Any layer without one of these recognized suffixes is an organizational layer and may sit between them.
 
 ```text
 Office Project-Project
   Main Site-Site
     Office Building-Building
       Level 01-Storey
-        Walls
+        Architecture
           Exterior Walls-Wall
           Interior Walls-Wall
         Structure
           Columns-Column
           Beams-Beam
+          Floor-Slab
+        Openings
+          Doors-Door
+          Windows-Window
       Level 02-Storey
         Exterior Walls-Wall
 ```
 
-This creates one project, a site, a building, two storeys, and the element objects under the storey that contains their direct layer. The `Walls` and `Structure` layers do not become IFC classes. If a model omits part of the spatial path, the exporter creates a default site, building, or storey so elements remain contained.
+This produces an `IfcProject` containing an `IfcSite`, an `IfcBuilding`, and two `IfcBuildingStorey` objects. The `Architecture`, `Structure`, and `Openings` layers are only organizational; the element's own layer suffix determines its IFC class.
 
-Every exported element receives `RhinoProperties.SourceLayer` containing its full Rhino layer path. An object name is preserved when present; otherwise the exporter uses the direct layer name with a sequence number.
+If part of the spatial path is omitted, the exporter creates default site, building, and storey containers so elements remain in a valid IFC hierarchy. Each exported element also receives its full Rhino layer path as `RhinoProperties.SourceLayer`.
 
-## Export behavior
+## Grasshopper exporter
 
-- Planar Breps use `IfcPolygonalFaceSet`; other supported geometry uses indexed `IfcTriangulatedFaceSet`.
-- Nested Block instances are flattened to world coordinates.
-- Rhino document units are converted to IFC metres.
-- IFC2x3 and IFC import are intentionally out of scope for v0.2.0.
+The `IFC Export` component accepts meshes, optional element names, optional IFC class names, and an output path. It always writes IFC4 and uses `IfcBuildingElementProxy` when a class is not supplied. Layer-name classification applies to the Rhino `_IfcExport` command; Grasshopper class names are supplied explicitly through the component input.
 
-## Dependencies
+## Build from source
+
+Requirements: the .NET Framework 4.8 Developer Pack and .NET SDK 6.0 or newer.
+
+```text
+dotnet restore
+dotnet build RhinoIfc.sln -c Release
+```
+
+Build outputs:
+
+- `RhinoIfc\bin\Release\RhinoIfc.rhp`
+- `GH_RhinoIfc\bin\Release\GH_RhinoIfc.dll`
+
+Run `build.bat` after installing the Yak CLI to create the Yak package.
+
+## Dependencies and license
 
 - [xBIM Essentials](https://github.com/xBimTeam/XbimEssentials) (CDDL)
 - [RhinoCommon](https://developer.rhino3d.com/guides/rhinocommon/) (McNeel SDK)
-
-## License
 
 MIT
