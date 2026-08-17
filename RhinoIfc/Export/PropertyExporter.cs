@@ -25,15 +25,23 @@ namespace RhinoIfc.Export
             "IFC_GlobalId", "IFC_Name", "IFC_Class", "IFC_Description", "IFC_ObjectType"
         };
 
-        public static void ExportUserStrings(IfcStore model, IIfcProduct element, RhinoObject rhinoObj)
+        public static void ExportUserStrings(
+            IfcStore model,
+            IIfcProduct element,
+            RhinoObject rhinoObj,
+            string sourceLayer)
         {
-            var userStrings = rhinoObj.Attributes.GetUserStrings();
-            if (userStrings == null || userStrings.Count == 0) return;
-
-            // Group by pset name
             var psets = new Dictionary<string, List<(string propName, string value)>>();
+            if (!string.IsNullOrWhiteSpace(sourceLayer))
+            {
+                psets["RhinoProperties"] = new List<(string, string)>
+                {
+                    ("SourceLayer", sourceLayer)
+                };
+            }
 
-            foreach (string key in userStrings.AllKeys)
+            var userStrings = rhinoObj.Attributes.GetUserStrings();
+            foreach (string key in userStrings?.AllKeys ?? new string[0])
             {
                 if (SkipKeys.Contains(key)) continue;
 
@@ -54,6 +62,10 @@ namespace RhinoIfc.Export
                     psetName = "RhinoProperties";
                     propName = key;
                 }
+
+                if (psetName == "RhinoProperties" && propName == "SourceLayer" &&
+                    !string.IsNullOrWhiteSpace(sourceLayer))
+                    continue;
 
                 if (!psets.ContainsKey(psetName))
                     psets[psetName] = new List<(string, string)>();

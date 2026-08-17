@@ -78,7 +78,7 @@ namespace GH_RhinoIfc
                     ApplicationDevelopersName = "RhinoIfc",
                     ApplicationFullName = "RhinoIfc GH",
                     ApplicationIdentifier = "RhinoIfc",
-                    ApplicationVersion = "0.1.11",
+                    ApplicationVersion = "0.2.0",
                     EditorsFamilyName = System.Environment.UserName,
                     EditorsGivenName = "",
                     EditorsOrganisationName = ""
@@ -164,7 +164,7 @@ namespace GH_RhinoIfc
                             string ifcClass = (i < classes.Count && classes[i]?.Value != null)
                                 ? classes[i].Value : "IfcBuildingElementProxy";
 
-                            var element = CreateElement(model, ifcClass, name);
+                            var element = IfcModelWriter.CreateElement(model, ifcClass, name);
 
                             var representation = GeometryExporter.CreateRepresentation(
                                 model, geomContext, new[] { ghMesh.Value }, unitScale);
@@ -207,25 +207,5 @@ namespace GH_RhinoIfc
             }
         }
 
-        private static IfcProduct CreateElement(IfcStore model, string ifcClassName, string name)
-        {
-            IfcProduct element = ifcClassName switch
-            {
-                "IfcWall" => model.Instances.New<IfcWall>(),
-                "IfcSlab" => model.Instances.New<IfcSlab>(),
-                "IfcColumn" => model.Instances.New<IfcColumn>(),
-                "IfcBeam" => model.Instances.New<IfcBeam>(),
-                "IfcDoor" => model.Instances.New<IfcDoor>(),
-                "IfcWindow" => model.Instances.New<IfcWindow>(),
-                "IfcRoof" => model.Instances.New<IfcRoof>(),
-                "IfcStair" => model.Instances.New<IfcStair>(),
-                "IfcRailing" => model.Instances.New<IfcRailing>(),
-                "IfcFurnishingElement" => model.Instances.New<IfcFurnishingElement>(),
-                _ => model.Instances.New<IfcBuildingElementProxy>()
-            };
-
-            element.Name = name;
-            return element;
-        }
     }
 }

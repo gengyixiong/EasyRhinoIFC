@@ -1,22 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net48</TargetFramework>
     <LangVersion>latest</LangVersion>
-    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="Xbim.Essentials" Version="6.0.578" />
-    <PackageReference Include="Xbim.Geometry" Version="5.1.820" />
-    <PackageReference Include="Xbim.Tessellator" Version="6.0.521" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Include="..\RhinoIfc\Export\IfcProjectUnits.cs" Link="Export\IfcProjectUnits.cs" />
+    <Compile Include="..\RhinoIfc\Export\ClassMapper.cs" Link="Export\ClassMapper.cs" />
     <Compile Include="..\RhinoIfc\Export\InstanceGraphTraversal.cs" Link="Export\InstanceGraphTraversal.cs" />
-    <Compile Include="..\RhinoIfc\Util\UnitScale.cs" Link="Util\UnitScale.cs" />
   </ItemGroup>
-
 </Project>

@@ -3,112 +3,60 @@ using System.Collections.Generic;
 
 namespace RhinoIfc.Export
 {
-    /// <summary>
-    /// Maps Rhino layer names to IFC entity class names.
-    /// Scans each segment of the layer path for known keywords.
-    /// Falls back to IfcBuildingElementProxy when no match is found.
-    /// </summary>
     public static class ClassMapper
     {
         private static readonly Dictionary<string, string> Map =
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
-                // Walls
-                ["wall"]        = "IfcWall",
-                ["walls"]       = "IfcWall",
-                ["wand"]        = "IfcWall",       // German
-                ["mur"]         = "IfcWall",       // French
-
-                // Slabs / floors
-                ["slab"]        = "IfcSlab",
-                ["slabs"]       = "IfcSlab",
-                ["floor"]       = "IfcSlab",
-                ["floors"]      = "IfcSlab",
-                ["decke"]       = "IfcSlab",       // German
-
-                // Roof
-                ["roof"]        = "IfcRoof",
-                ["roofs"]       = "IfcRoof",
-                ["dach"]        = "IfcRoof",
-
-                // Columns
-                ["column"]      = "IfcColumn",
-                ["columns"]     = "IfcColumn",
-                ["stütze"]      = "IfcColumn",
-
-                // Beams
-                ["beam"]        = "IfcBeam",
-                ["beams"]       = "IfcBeam",
-                ["träger"]      = "IfcBeam",
-
-                // Doors
-                ["door"]        = "IfcDoor",
-                ["doors"]       = "IfcDoor",
-                ["tür"]         = "IfcDoor",
-
-                // Windows
-                ["window"]      = "IfcWindow",
-                ["windows"]     = "IfcWindow",
-                ["fenster"]     = "IfcWindow",
-
-                // Stairs
-                ["stair"]       = "IfcStair",
-                ["stairs"]      = "IfcStair",
-                ["treppe"]      = "IfcStair",
-
-                // Railing
-                ["railing"]     = "IfcRailing",
-                ["railings"]    = "IfcRailing",
-                ["geländer"]    = "IfcRailing",
-
-                // Furniture
-                ["furniture"]   = "IfcFurnishingElement",
-                ["furnishing"]  = "IfcFurnishingElement",
-                ["möbel"]       = "IfcFurnishingElement",
-
-                // Curtain wall
-                ["curtainwall"] = "IfcCurtainWall",
-                ["curtain wall"]= "IfcCurtainWall",
-
-                // Plate
-                ["plate"]       = "IfcPlate",
-                ["plates"]      = "IfcPlate",
-
-                // Covering
-                ["covering"]    = "IfcCovering",
-                ["ceiling"]     = "IfcCovering",
+                { "Project", "IfcProject" },
+                { "Site", "IfcSite" },
+                { "Building", "IfcBuilding" },
+                { "BuildingStorey", "IfcBuildingStorey" },
+                { "Storey", "IfcBuildingStorey" },
+                { "Space", "IfcSpace" },
+                { "Wall", "IfcWall" },
+                { "Slab", "IfcSlab" },
+                { "Roof", "IfcRoof" },
+                { "Beam", "IfcBeam" },
+                { "Column", "IfcColumn" },
+                { "Door", "IfcDoor" },
+                { "Window", "IfcWindow" },
+                { "CurtainWall", "IfcCurtainWall" },
+                { "Stair", "IfcStair" },
+                { "StairFlight", "IfcStairFlight" },
+                { "Railing", "IfcRailing" },
+                { "Ramp", "IfcRamp" },
+                { "Covering", "IfcCovering" },
+                { "ShadingDevice", "IfcShadingDevice" },
+                { "Footing", "IfcFooting" },
+                { "Pile", "IfcPile" },
+                { "Member", "IfcMember" },
+                { "Plate", "IfcPlate" },
+                { "Opening", "IfcOpeningElement" },
+                { "Furniture", "IfcFurniture" },
+                { "FurnishingElement", "IfcFurnishingElement" },
+                { "BuildingElementPart", "IfcBuildingElementPart" },
+                { "Proxy", "IfcBuildingElementProxy" },
+                { "BuildingElementProxy", "IfcBuildingElementProxy" }
             };
 
         /// <summary>
-        /// Scans each segment of the full layer path (split by ::) for known keywords.
-        /// Returns the IFC class name, or "IfcBuildingElementProxy" as fallback.
+        /// Maps only the suffix after the last hyphen in the leaf Rhino layer.
+        /// Unknown or missing suffixes are intentionally left unclassified.
         /// </summary>
-        public static string MapLayerToIfcClass(string layerFullPath)
+        public static string MapLayerToIfcClass(string layerName)
         {
-            if (string.IsNullOrWhiteSpace(layerFullPath))
-                return "IfcBuildingElementProxy";
+            if (string.IsNullOrWhiteSpace(layerName)) return null;
 
-            // Check each segment of the layer path
-            var segments = layerFullPath.Split(new[] { "::" }, StringSplitOptions.RemoveEmptyEntries);
-            foreach (var segment in segments)
-            {
-                string trimmed = segment.Trim();
-                if (Map.TryGetValue(trimmed, out var ifcClass))
-                    return ifcClass;
-            }
+            int pathSeparator = layerName.LastIndexOf("::", StringComparison.Ordinal);
+            string leaf = layerName.Substring(pathSeparator < 0 ? 0 : pathSeparator + 2).Trim();
+            int hyphen = leaf.LastIndexOf('-');
+            if (hyphen < 0 || hyphen == leaf.Length - 1) return null;
 
-            // Also try the last segment as a partial match (e.g. "Exterior Walls" contains "wall")
-            if (segments.Length > 0)
-            {
-                string lastSegment = segments[segments.Length - 1].Trim().ToLowerInvariant();
-                foreach (var kvp in Map)
-                {
-                    if (lastSegment.Contains(kvp.Key))
-                        return kvp.Value;
-                }
-            }
-
-            return "IfcBuildingElementProxy";
+            string ifcClass;
+            return Map.TryGetValue(leaf.Substring(hyphen + 1).Trim(), out ifcClass)
+                ? ifcClass
+                : null;
         }
     }
 }

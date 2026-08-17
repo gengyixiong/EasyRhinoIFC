@@ -1,12 +1,11 @@
 name: rhinoifc
-version: 0.1.11
+version: 0.2.0
 authors:
   - RhinoIfc Contributors
-description: IFC import/export for Rhino using xBIM, with nested Block instance export
+description: IFC4 export for Rhino using xBIM, with automatic layer classification
 url: ""
 keywords:
   - ifc
   - bim
-  - import
   - export
   - xbim

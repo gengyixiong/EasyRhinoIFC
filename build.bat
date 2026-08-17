@@ -15,17 +15,13 @@ if exist %STAGE% rd /s /q %STAGE%
 mkdir %STAGE%
 
 :: Copy plugin output
-copy RhinoIfc\bin\Release\RhinoIfc.dll %STAGE%\RhinoIfc.rhp
+copy RhinoIfc\bin\Release\RhinoIfc.rhp %STAGE%\RhinoIfc.rhp
 
 :: Copy xBIM managed dependencies
 copy RhinoIfc\bin\Release\Xbim.*.dll %STAGE%\
 copy RhinoIfc\bin\Release\Microsoft.Extensions.*.dll %STAGE%\ 2>nul
 copy RhinoIfc\bin\Release\Microsoft.Bcl.*.dll %STAGE%\ 2>nul
 copy RhinoIfc\bin\Release\System.*.dll %STAGE%\ 2>nul
-
-:: Copy native geometry engine DLLs
-copy RhinoIfc\bin\Release\Xbim.Geometry.Engine32.dll %STAGE%\
-copy RhinoIfc\bin\Release\Xbim.Geometry.Engine64.dll %STAGE%\
 
 :: Copy manifest
 copy manifest.yml %STAGE%\

@@ -4,8 +4,8 @@
     <TargetFramework>net48</TargetFramework>
     <LangVersion>latest</LangVersion>
     <Title>GH_RhinoIfc</Title>
-    <Description>Grasshopper components for IFC import/export</Description>
-    <Version>0.1.11</Version>
+    <Description>Grasshopper component for IFC4 export</Description>
+    <Version>0.2.0</Version>
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
@@ -18,8 +18,6 @@
     </PackageReference>
 
     <PackageReference Include="Xbim.Essentials" Version="6.0.578" />
-    <PackageReference Include="Xbim.Geometry" Version="5.1.820" />
-    <PackageReference Include="Xbim.Tessellator" Version="6.0.521" />
   </ItemGroup>
 
   <ItemGroup>
