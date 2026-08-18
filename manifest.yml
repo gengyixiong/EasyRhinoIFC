@@ -1,5 +1,5 @@
 name: rhinoifc
-version: 0.2.0
+version: 0.2.1
 authors:
   - RhinoIfc Contributors
 description: IFC4 export for Rhino using xBIM, with automatic layer classification

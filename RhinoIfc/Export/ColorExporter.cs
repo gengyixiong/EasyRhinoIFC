@@ -23,19 +23,24 @@ namespace RhinoIfc.Export
         {
             if (representation == null) return;
 
-            Color? color = ResolveColor(doc, rhinoObj);
-            if (!color.HasValue) return;
-
-            var c = color.Value;
-
-            // Find the first representation item
             IfcRepresentationItem repItem = null;
             foreach (var item in representation.Items)
             {
                 repItem = item as IfcRepresentationItem;
                 break;
             }
+
+            ApplyColor(model, doc, rhinoObj, repItem);
+        }
+
+        public static void ApplyColor(IfcStore model, RhinoDoc doc, RhinoObject rhinoObj, IfcRepresentationItem repItem)
+        {
             if (repItem == null) return;
+
+            Color? color = ResolveColor(doc, rhinoObj);
+            if (!color.HasValue) return;
+
+            var c = color.Value;
 
             // IfcColourRgb (0.0–1.0 channels)
             var rgb = model.Instances.New<IfcColourRgb>(col =>

@@ -4,7 +4,7 @@
     <LangVersion>latest</LangVersion>
     <Title>RhinoIfc</Title>
     <Description>IFC4 export for Rhino</Description>
-    <Version>0.2.0</Version>
+    <Version>0.2.1</Version>
     <Authors>YourName</Authors>
     <TargetExt>.rhp</TargetExt>
     <EnableDynamicLoading>true</EnableDynamicLoading>

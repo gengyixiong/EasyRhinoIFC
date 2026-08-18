@@ -98,6 +98,32 @@ namespace RhinoIfc.Export
             Mesh[] meshes,
             double unitScale)
         {
+            var faceSet = CreateTriangulatedFaceSet(model, meshes, unitScale);
+            return faceSet == null ? null : CreateShapeRepresentation(model, context, faceSet);
+        }
+
+        internal static IfcShapeRepresentation CreateRepresentation(
+            IfcStore model,
+            IIfcGeometricRepresentationContext context,
+            ExportGeometry[] geometry,
+            double unitScale)
+        {
+            if (geometry == null) return null;
+
+            var items = geometry
+                .Select(g => CreateTriangulatedFaceSet(model, g.Meshes, unitScale))
+                .Where(item => item != null)
+                .Cast<IfcTessellatedItem>()
+                .ToArray();
+
+            return items.Length == 0 ? null : CreateShapeRepresentation(model, context, items);
+        }
+
+        private static IfcTriangulatedFaceSet CreateTriangulatedFaceSet(
+            IfcStore model,
+            Mesh[] meshes,
+            double unitScale)
+        {
             if (meshes == null) return null;
 
             var validMeshes = meshes
@@ -138,20 +164,20 @@ namespace RhinoIfc.Export
                 vertexOffset += mesh.Vertices.Count;
             }
 
-            return CreateShapeRepresentation(model, context, faceSet);
+            return faceSet;
         }
 
         private static IfcShapeRepresentation CreateShapeRepresentation(
             IfcStore model,
             IIfcGeometricRepresentationContext context,
-            IfcTessellatedItem item)
+            params IfcTessellatedItem[] items)
         {
             return model.Instances.New<IfcShapeRepresentation>(sr =>
             {
                 sr.ContextOfItems = (IfcRepresentationContext)context;
                 sr.RepresentationIdentifier = "Body";
                 sr.RepresentationType = "Tessellation";
-                sr.Items.Add(item);
+                foreach (var item in items) sr.Items.Add(item);
             });
         }
 

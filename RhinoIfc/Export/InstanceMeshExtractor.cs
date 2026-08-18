@@ -4,18 +4,30 @@ using Rhino.Geometry;
 
 namespace RhinoIfc.Export
 {
+    internal sealed class ExportGeometry
+    {
+        public ExportGeometry(RhinoObject sourceObject, Mesh[] meshes)
+        {
+            SourceObject = sourceObject;
+            Meshes = meshes;
+        }
+
+        public RhinoObject SourceObject { get; }
+        public Mesh[] Meshes { get; }
+    }
+
     /// <summary>
     /// Extracts exportable meshes from ordinary Rhino objects and block instances.
-    /// Each top-level instance is flattened to world coordinates while preserving
-    /// the existing one-Rhino-object-to-one-IFC-element export model.
+    /// Each top-level instance is flattened to world coordinates while retaining
+    /// the leaf object that supplies each geometry group's appearance.
     /// </summary>
     internal static class InstanceMeshExtractor
     {
-        public static Mesh[] Extract(RhinoObject obj)
+        public static ExportGeometry[] Extract(RhinoObject obj)
         {
             if (obj == null) return null;
 
-            var meshes = new System.Collections.Generic.List<Mesh>();
+            var geometry = new System.Collections.Generic.List<ExportGeometry>();
             InstanceGraphTraversal.Traverse<RhinoObject, Transform, int>(
                 obj,
                 Transform.Identity,
@@ -30,9 +42,9 @@ namespace RhinoIfc.Export
                 },
                 node => ((InstanceObject)node).InstanceXform,
                 CombineTransforms,
-                (leaf, transform) => AppendMeshes(leaf, transform, meshes));
+                (leaf, transform) => AppendGeometry(leaf, transform, geometry));
 
-            return meshes.Count == 0 ? null : meshes.ToArray();
+            return geometry.Count == 0 ? null : geometry.ToArray();
         }
 
         internal static Transform CombineTransforms(Transform parentTransform, Transform instanceTransform)
@@ -47,15 +59,17 @@ namespace RhinoIfc.Export
             return transform.Determinant < 0;
         }
 
-        private static void AppendMeshes(
+        private static void AppendGeometry(
             RhinoObject obj,
             Transform accumulatedTransform,
-            System.Collections.Generic.List<Mesh> result)
+            System.Collections.Generic.List<ExportGeometry> result)
         {
             if (obj == null) return;
 
             var meshes = CreateMeshes(obj);
             if (meshes == null) return;
+
+            var validMeshes = new System.Collections.Generic.List<Mesh>();
 
             foreach (var mesh in meshes)
             {
@@ -77,10 +91,13 @@ namespace RhinoIfc.Export
 
                 CleanMesh(mesh);
                 if (mesh.Vertices.Count > 0 && mesh.Faces.Count > 0)
-                    result.Add(mesh);
+                    validMeshes.Add(mesh);
                 else
                     mesh.Dispose();
             }
+
+            if (validMeshes.Count > 0)
+                result.Add(new ExportGeometry(obj, validMeshes.ToArray()));
         }
 
         private static Mesh[] CreateMeshes(RhinoObject obj)

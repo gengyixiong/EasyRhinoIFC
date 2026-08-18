@@ -2,7 +2,7 @@
 
 RhinoIfc is an export-only IFC4 plugin for Rhino 8 on Windows. It exports Rhino geometry and nested Block instances through xBIM to `.ifc` or `.ifczip` files. A Grasshopper component is included for mesh-based IFC export.
 
-IFC import is not included in v0.2.0.
+IFC import is not included in v0.2.1.
 
 ## Install the release
 
