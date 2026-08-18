@@ -37,7 +37,7 @@ namespace RhinoIfc.Export
                 ApplicationDevelopersName = "RhinoIfc",
                 ApplicationFullName = "RhinoIfc Plugin",
                 ApplicationIdentifier = "RhinoIfc",
-                ApplicationVersion = "0.2.0",
+                ApplicationVersion = "0.2.1",
                 EditorsFamilyName = System.Environment.UserName,
                 EditorsGivenName = "",
                 EditorsOrganisationName = ""
@@ -205,6 +205,7 @@ namespace RhinoIfc.Export
                     foreach (var rhinoObj in exportObjects)
                     {
                         IfcShapeRepresentation representation = null;
+                        ExportGeometry[] exportGeometry = null;
                         if (rhinoObj.Geometry is Brep brep)
                         {
                             representation = GeometryExporter.CreatePlanarBrepRepresentation(
@@ -213,17 +214,19 @@ namespace RhinoIfc.Export
 
                         if (representation == null)
                         {
-                            var meshes = InstanceMeshExtractor.Extract(rhinoObj);
-                            if (meshes == null || meshes.Length == 0) continue;
+                            exportGeometry = InstanceMeshExtractor.Extract(rhinoObj);
+                            if (exportGeometry == null || exportGeometry.Length == 0) continue;
 
                             try
                             {
                                 representation = GeometryExporter.CreateRepresentation(
-                                    model, geomContext, meshes, unitScale);
+                                    model, geomContext, exportGeometry, unitScale);
                             }
                             finally
                             {
-                                foreach (var mesh in meshes) mesh?.Dispose();
+                                foreach (var group in exportGeometry)
+                                    foreach (var mesh in group.Meshes)
+                                        mesh?.Dispose();
                             }
                         }
 
@@ -237,7 +240,16 @@ namespace RhinoIfc.Export
                         if (string.IsNullOrWhiteSpace(elementName)) elementName = $"{layer.Name} {++seq}";
 
                         var element = CreateElement(model, ifcClassName, elementName);
-                        ColorExporter.ApplyColor(model, doc, rhinoObj, representation);
+                        if (exportGeometry == null)
+                        {
+                            ColorExporter.ApplyColor(model, doc, rhinoObj, representation);
+                        }
+                        else
+                        {
+                            var items = representation.Items.OfType<IfcRepresentationItem>().ToArray();
+                            for (int i = 0; i < exportGeometry.Length && i < items.Length; i++)
+                                ColorExporter.ApplyColor(model, doc, exportGeometry[i].SourceObject, items[i]);
+                        }
                         element.Representation = model.Instances.New<IfcProductDefinitionShape>(pds =>
                         {
                             pds.Representations.Add(representation);

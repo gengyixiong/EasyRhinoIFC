@@ -78,7 +78,7 @@ namespace GH_RhinoIfc
                     ApplicationDevelopersName = "RhinoIfc",
                     ApplicationFullName = "RhinoIfc GH",
                     ApplicationIdentifier = "RhinoIfc",
-                    ApplicationVersion = "0.2.0",
+                    ApplicationVersion = "0.2.1",
                     EditorsFamilyName = System.Environment.UserName,
                     EditorsGivenName = "",
                     EditorsOrganisationName = ""

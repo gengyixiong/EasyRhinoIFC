@@ -57,9 +57,11 @@ namespace RhinoIfc.Tests
 
         private static void ValidateInstanceTraversal()
         {
-            var leaf = new Node("Leaf");
-            var nested = new Node("Nested", 2, 5, leaf);
-            var root = new Node("Root", 1, 10, nested);
+            var red = new Node("Red");
+            var blue = new Node("Blue");
+            var green = new Node("Green");
+            var nested = new Node("Nested", 2, 5, blue, green);
+            var root = new Node("Root", 1, 10, red, nested);
             var visits = new List<string>();
 
             InstanceGraphTraversal.Traverse<Node, int, int>(
@@ -72,7 +74,7 @@ namespace RhinoIfc.Tests
                 (parent, child) => parent + child,
                 (node, transform) => visits.Add($"{node.Name}:{transform}"));
 
-            AssertEqual("Leaf:15", visits.Count == 1 ? visits[0] : null);
+            AssertEqual("Red:10|Blue:15|Green:15", string.Join("|", visits));
         }
 
         private static void AssertEqual(string expected, string actual)
