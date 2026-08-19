@@ -14,7 +14,7 @@ namespace RhinoIfc
 
         protected override LoadReturnCode OnLoad(ref string errorMessage)
         {
-            RhinoApp.WriteLine("RhinoIfc plugin loaded — command: IfcExport");
+            RhinoApp.WriteLine("EasyRhinoIFC plugin loaded — command: IfcExport");
             return LoadReturnCode.Success;
         }
     }

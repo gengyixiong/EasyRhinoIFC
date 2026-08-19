@@ -1,18 +1,18 @@
-# RhinoIfc
+# EasyRhinoIFC
 
-RhinoIfc is an export-only IFC4 plugin for Rhino 8 on Windows. It exports Rhino geometry and nested Block instances through xBIM to `.ifc` or `.ifczip` files. A Grasshopper component is included for mesh-based IFC export.
+EasyRhinoIFC is an export-only IFC4 plugin for Rhino 8 on Windows. It exports Rhino geometry and nested Block instances through xBIM to `.ifc` or `.ifczip` files. A Grasshopper component is included for mesh-based IFC export.
 
-IFC import is not included in v0.2.1.
+IFC import is not included in v0.2.2.
 
 ## Install the release
 
-1. Download the latest [RhinoIfc release](https://github.com/gengyixiong/RhinoIfc/releases/latest).
-2. Extract the complete ZIP to a permanent folder. Keep `RhinoIfc.rhp` and all DLLs together.
-3. In Rhino, run `_PlugInManager`, choose **Install**, and select the extracted `RhinoIfc.rhp`.
+1. Download the latest [EasyRhinoIFC release](https://github.com/gengyixiong/EasyRhinoIFC/releases/latest).
+2. Extract the complete ZIP to a permanent folder. Keep `EasyRhinoIFC.rhp` and all DLLs together.
+3. In Rhino, run `_PlugInManager`, choose **Install**, and select the extracted `EasyRhinoIFC.rhp`.
 4. Restart Rhino.
 5. Run `_IfcExport`.
 
-The optional Grasshopper component is `GH_RhinoIfc.dll`. Copy it to `%APPDATA%\Grasshopper\Libraries\` and restart Grasshopper. If your Grasshopper installation requires it, rename the file to `GH_RhinoIfc.gha` after copying.
+The optional Grasshopper component is `GH_EasyRhinoIFC.dll`. Copy it to `%APPDATA%\Grasshopper\Libraries\` and restart Grasshopper. If your Grasshopper installation requires it, rename the file to `GH_EasyRhinoIFC.gha` after copying.
 
 ## Use the Rhino exporter
 
@@ -115,8 +115,8 @@ dotnet build RhinoIfc.sln -c Release
 
 Build outputs:
 
-- `RhinoIfc\bin\Release\RhinoIfc.rhp`
-- `GH_RhinoIfc\bin\Release\GH_RhinoIfc.dll`
+- `RhinoIfc\bin\Release\EasyRhinoIFC.rhp`
+- `GH_RhinoIfc\bin\Release\GH_EasyRhinoIFC.dll`
 
 Run `build.bat` after installing the Yak CLI to create the Yak package.
 
@@ -125,4 +125,4 @@ Run `build.bat` after installing the Yak CLI to create the Yak package.
 - [xBIM Essentials](https://github.com/xBimTeam/XbimEssentials) (CDDL)
 - [RhinoCommon](https://developer.rhino3d.com/guides/rhinocommon/) (McNeel SDK)
 
-MIT
+[MIT](LICENSE)

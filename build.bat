@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-echo === Building RhinoIfc ===
+echo === Building EasyRhinoIFC ===
 dotnet build RhinoIfc\RhinoIfc.csproj -c Release
 if errorlevel 1 (
     echo BUILD FAILED
@@ -15,7 +15,7 @@ if exist %STAGE% rd /s /q %STAGE%
 mkdir %STAGE%
 
 :: Copy plugin output
-copy RhinoIfc\bin\Release\RhinoIfc.rhp %STAGE%\RhinoIfc.rhp
+copy RhinoIfc\bin\Release\EasyRhinoIFC.rhp %STAGE%\EasyRhinoIFC.rhp
 
 :: Copy xBIM managed dependencies
 copy RhinoIfc\bin\Release\Xbim.*.dll %STAGE%\

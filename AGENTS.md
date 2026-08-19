@@ -1,4 +1,4 @@
-# Agent Guide — RhinoIfc
+# Agent Guide — EasyRhinoIFC
 
 > **Minimal front door (2026-08-17).** IFC4 export plugin for Rhino 8 (Windows) with
 > a Grasshopper export component. Rhino layer suffixes drive IFC classification and

@@ -3,9 +3,12 @@
   <PropertyGroup>
     <TargetFramework>net48</TargetFramework>
     <LangVersion>latest</LangVersion>
-    <Title>GH_RhinoIfc</Title>
+    <Title>GH_EasyRhinoIFC</Title>
+    <AssemblyTitle>GH_EasyRhinoIFC</AssemblyTitle>
+    <Product>EasyRhinoIFC</Product>
+    <Authors>EasyRhinoIFC Contributors</Authors>
     <Description>Grasshopper component for IFC4 export</Description>
-    <Version>0.2.1</Version>
+    <Version>0.2.2</Version>
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
@@ -25,5 +28,9 @@
       <PrivateAssets>none</PrivateAssets>
     </ProjectReference>
   </ItemGroup>
+
+  <Target Name="CopyBrandedAssembly" AfterTargets="Build">
+    <Copy SourceFiles="$(TargetPath)" DestinationFiles="$(TargetDir)GH_EasyRhinoIFC.dll" SkipUnchangedFiles="true" />
+  </Target>
 
 </Project>

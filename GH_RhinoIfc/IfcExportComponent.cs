@@ -28,7 +28,7 @@ namespace GH_RhinoIfc
         public IfcExportComponent()
             : base("IFC Export", "IfcOut",
                 "Export meshes to an IFC file",
-                "RhinoIfc", "IFC")
+                "EasyRhinoIFC", "IFC")
         { }
 
         public override Guid ComponentGuid => new Guid("C9160020-5CE1-4E00-A000-C6A1A19BA102");
@@ -75,10 +75,10 @@ namespace GH_RhinoIfc
 
                 var creds = new XbimEditorCredentials
                 {
-                    ApplicationDevelopersName = "RhinoIfc",
-                    ApplicationFullName = "RhinoIfc GH",
-                    ApplicationIdentifier = "RhinoIfc",
-                    ApplicationVersion = "0.2.1",
+                    ApplicationDevelopersName = "EasyRhinoIFC",
+                    ApplicationFullName = "EasyRhinoIFC GH",
+                    ApplicationIdentifier = "EasyRhinoIFC",
+                    ApplicationVersion = "0.2.2",
                     EditorsFamilyName = System.Environment.UserName,
                     EditorsGivenName = "",
                     EditorsOrganisationName = ""

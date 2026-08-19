@@ -34,10 +34,10 @@ namespace RhinoIfc.Export
 
             var editor = new XbimEditorCredentials
             {
-                ApplicationDevelopersName = "RhinoIfc",
-                ApplicationFullName = "RhinoIfc Plugin",
-                ApplicationIdentifier = "RhinoIfc",
-                ApplicationVersion = "0.2.1",
+                ApplicationDevelopersName = "EasyRhinoIFC",
+                ApplicationFullName = "EasyRhinoIFC Plugin",
+                ApplicationIdentifier = "EasyRhinoIFC",
+                ApplicationVersion = "0.2.2",
                 EditorsFamilyName = System.Environment.UserName,
                 EditorsGivenName = "",
                 EditorsOrganisationName = ""

@@ -2,10 +2,14 @@
   <PropertyGroup>
     <TargetFramework>net48</TargetFramework>
     <LangVersion>latest</LangVersion>
-    <Title>RhinoIfc</Title>
+    <Title>EasyRhinoIFC</Title>
+    <AssemblyTitle>EasyRhinoIFC</AssemblyTitle>
+    <Product>EasyRhinoIFC</Product>
     <Description>IFC4 export for Rhino</Description>
-    <Version>0.2.1</Version>
-    <Authors>YourName</Authors>
+    <Version>0.2.2</Version>
+    <AssemblyVersion>0.2.1.0</AssemblyVersion>
+    <FileVersion>0.2.2.0</FileVersion>
+    <Authors>EasyRhinoIFC Contributors</Authors>
     <TargetExt>.rhp</TargetExt>
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
@@ -19,4 +23,7 @@
     </PackageReference>
     <PackageReference Include="Xbim.Essentials" Version="6.0.578" />
   </ItemGroup>
+  <Target Name="CopyBrandedPlugin" AfterTargets="Build">
+    <Copy SourceFiles="$(TargetPath)" DestinationFiles="$(TargetDir)EasyRhinoIFC.rhp" SkipUnchangedFiles="true" />
+  </Target>
 </Project>
