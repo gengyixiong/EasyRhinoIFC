@@ -15,23 +15,6 @@ EasyRhinoIFC helps architects turn Rhino design models into structured, lightwei
 - **Export quickly and share easily** — Create compact IFC files from large Rhino models.
 - **Improve collaboration** — Give engineers a structured IFC model that is easier to review and use.
 
-## 简体中文
-
-EasyRhinoIFC 帮助建筑师将 Rhino 设计模型转换为结构清晰、轻量易分享的 IFC 文件，无需掌握复杂的 BIM 或 IFC 知识。
-
-### 核心优势
-
-- **继续使用 Rhino 设计** —— 保留熟悉的 Rhino 工作流程，无需学习额外的 BIM 建模软件。
-- **通过图层名称完成分类** —— 在 Rhino 图层名称中添加 IFC 关键字，即可自动识别对象类别。
-- **保留模型结构** —— 导出时保留建筑、楼层和图层之间的层级关系。
-- **保留设计意图** —— 保留对象颜色、图层颜色以及嵌套 Block 内部的颜色。
-- **导出更快，文件更轻** —— 将大型 Rhino 模型转换为更轻量的 IFC 文件。
-- **让工程协作更顺畅** —— 为工程团队提供结构清晰、易于理解和使用的 IFC 模型。
-
----
-
-IFC import is not included in v0.2.2.
-
 ## Install the release
 
 1. Download the latest [EasyRhinoIFC release](https://github.com/gengyixiong/EasyRhinoIFC/releases/latest).
@@ -157,11 +140,18 @@ Run `build.bat` after installing the Yak CLI to create the Yak package.
 
 ---
 
-## 中文文档
+## 简体中文
 
-EasyRhinoIFC 是一个适用于 Windows Rhino 8 的 IFC4 导出插件。它通过 xBIM 将 Rhino 几何体和嵌套的 Block 实例导出为 `.ifc` 或 `.ifczip` 文件，并提供一个基于网格的 Grasshopper 导出组件。
+EasyRhinoIFC 帮助建筑师将 Rhino 设计模型转换为结构清晰、轻量易分享的 IFC 文件，无需掌握复杂的 BIM 或 IFC 知识。
 
-v0.2.2 不包含 IFC 导入功能。
+### 核心优势
+
+- **继续使用 Rhino 设计** —— 保留熟悉的 Rhino 工作流程，无需学习额外的 BIM 建模软件。
+- **通过图层名称完成分类** —— 在 Rhino 图层名称中添加 IFC 关键字，即可自动识别对象类别。
+- **保留模型结构** —— 导出时保留建筑、楼层和图层之间的层级关系。
+- **保留设计意图** —— 保留对象颜色、图层颜色以及嵌套 Block 内部的颜色。
+- **导出更快，文件更轻** —— 将大型 Rhino 模型转换为更轻量的 IFC 文件。
+- **让工程协作更顺畅** —— 为工程团队提供结构清晰、易于理解和使用的 IFC 模型。
 
 ## 安装发布版
 
