@@ -1,6 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using RhinoIfc.Export;
+using Xbim.Common.Step21;
+using Xbim.Ifc;
+using Xbim.Ifc4.GeometricModelResource;
+using Xbim.Ifc4.PresentationOrganizationResource;
+using Xbim.Ifc4.RepresentationResource;
+using Xbim.IO;
 
 namespace RhinoIfc.Tests
 {
@@ -52,6 +59,7 @@ namespace RhinoIfc.Tests
             AssertEqual(null, ClassMapper.MapLayerToIfcClass("Parent-Wall::Exterior"));
 
             ValidateInstanceTraversal();
+            ValidatePresentationLayers();
             Console.WriteLine("All export tests passed.");
         }
 
@@ -75,6 +83,60 @@ namespace RhinoIfc.Tests
                 (node, transform) => visits.Add($"{node.Name}:{transform}"));
 
             AssertEqual("Red:10|Blue:15|Green:15", string.Join("|", visits));
+        }
+
+        private static void ValidatePresentationLayers()
+        {
+            var credentials = new XbimEditorCredentials
+            {
+                ApplicationDevelopersName = "EasyRhinoIFC",
+                ApplicationFullName = "EasyRhinoIFC Tests",
+                ApplicationIdentifier = "EasyRhinoIFC.Tests",
+                ApplicationVersion = "1",
+                EditorsFamilyName = "Test",
+                EditorsGivenName = "",
+                EditorsOrganisationName = ""
+            };
+
+            string outputPath = Path.Combine(Path.GetTempPath(), $"EasyRhinoIFC-{Guid.NewGuid():N}.ifc");
+            try
+            {
+                using (var model = IfcStore.Create(
+                    credentials, XbimSchemaVersion.Ifc4, XbimStoreType.InMemoryModel))
+                {
+                    using (var transaction = model.BeginTransaction("Presentation layers"))
+                    {
+                        var assignments = new Dictionary<Guid, IfcPresentationLayerAssignment>();
+                        var wallLayerId = Guid.NewGuid();
+                        var roofLayerId = Guid.NewGuid();
+
+                        PresentationLayerExporter.Assign(model, assignments, wallLayerId, "Walls",
+                            model.Instances.New<IfcShapeRepresentation>());
+                        PresentationLayerExporter.Assign(model, assignments, wallLayerId, "Walls",
+                            model.Instances.New<IfcShapeRepresentation>());
+                        PresentationLayerExporter.Assign(model, assignments, wallLayerId, "Walls",
+                            model.Instances.New<IfcTriangulatedFaceSet>());
+                        PresentationLayerExporter.Assign(model, assignments, roofLayerId, "Roofs",
+                            model.Instances.New<IfcShapeRepresentation>());
+
+                        AssertEqual("2", assignments.Count.ToString());
+                        AssertEqual("3", assignments[wallLayerId].AssignedItems.Count.ToString());
+                        AssertEqual("1", assignments[roofLayerId].AssignedItems.Count.ToString());
+                        transaction.Commit();
+                    }
+
+                    model.SaveAs(outputPath, StorageType.Ifc);
+                }
+
+                string ifc = File.ReadAllText(outputPath);
+                int layerCount = ifc.Split(new[] { "IFCPRESENTATIONLAYERASSIGNMENT(" },
+                    StringSplitOptions.None).Length - 1;
+                AssertEqual("2", layerCount.ToString());
+            }
+            finally
+            {
+                if (File.Exists(outputPath)) File.Delete(outputPath);
+            }
         }
 
         private static void AssertEqual(string expected, string actual)

@@ -13,6 +13,7 @@ using Xbim.Ifc4.GeometricModelResource;
 using Xbim.Ifc4.GeometryResource;
 using Xbim.Ifc4.Interfaces;
 using Xbim.Ifc4.Kernel;
+using Xbim.Ifc4.PresentationOrganizationResource;
 using Xbim.Ifc4.ProductExtension;
 using Xbim.Ifc4.RepresentationResource;
 using Xbim.Ifc4.SharedBldgElements;
@@ -202,6 +203,7 @@ namespace RhinoIfc.Export
                     }
 
                     int seq = 0;
+                    var presentationLayers = new Dictionary<Guid, IfcPresentationLayerAssignment>();
                     foreach (var rhinoObj in exportObjects)
                     {
                         IfcShapeRepresentation representation = null;
@@ -232,6 +234,8 @@ namespace RhinoIfc.Export
 
                         var layer = doc.Layers[rhinoObj.Attributes.LayerIndex];
                         string layerFullPath = layer.FullPath;
+                        PresentationLayerExporter.Assign(
+                            model, presentationLayers, layer.Id, layer.Name, representation);
                         var targetStorey = ResolveStorey(GetLayerSegments(layerFullPath));
                         string ifcClassName = ClassMapper.MapLayerToIfcClass(layer.Name);
 
@@ -248,7 +252,13 @@ namespace RhinoIfc.Export
                         {
                             var items = representation.Items.OfType<IfcRepresentationItem>().ToArray();
                             for (int i = 0; i < exportGeometry.Length && i < items.Length; i++)
+                            {
                                 ColorExporter.ApplyColor(model, doc, exportGeometry[i].SourceObject, items[i]);
+                                var sourceLayer = doc.Layers[
+                                    exportGeometry[i].SourceObject.Attributes.LayerIndex];
+                                PresentationLayerExporter.Assign(
+                                    model, presentationLayers, sourceLayer.Id, sourceLayer.Name, items[i]);
+                            }
                         }
                         element.Representation = model.Instances.New<IfcProductDefinitionShape>(pds =>
                         {

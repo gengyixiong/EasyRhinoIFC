@@ -6,9 +6,7 @@
     <Title>GH_EasyRhinoIFC</Title>
     <AssemblyTitle>GH_EasyRhinoIFC</AssemblyTitle>
     <Product>EasyRhinoIFC</Product>
-    <Authors>EasyRhinoIFC Contributors</Authors>
     <Description>Grasshopper component for IFC4 export</Description>
-    <Version>0.2.2</Version>
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>

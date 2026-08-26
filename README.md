@@ -107,7 +107,7 @@ Office Project-Project
         Exterior Walls-Wall
 ```
 
-This produces an `IfcProject` containing an `IfcSite`, an `IfcBuilding`, and two `IfcBuildingStorey` objects. The `Architecture`, `Structure`, and `Openings` layers are only organizational; the element's own layer suffix determines its IFC class.
+This produces an `IfcProject` containing an `IfcSite`, an `IfcBuilding`, and two `IfcBuildingStorey` objects. The `Architecture`, `Structure`, and `Openings` layers are only organizational; the element's own layer suffix determines its IFC class. Each object-bearing Rhino layer is also exported as an IFC `IfcPresentationLayerAssignment` so importing applications can reconstruct the source layers.
 
 If part of the spatial path is omitted, the exporter creates default site, building, and storey containers so elements remain in a valid IFC hierarchy. Each exported element also receives its full Rhino layer path as `RhinoProperties.SourceLayer`.
 
@@ -245,7 +245,7 @@ Office Project-Project
         Exterior Walls-Wall
 ```
 
-这会生成一个包含 `IfcSite`、`IfcBuilding` 和两个 `IfcBuildingStorey` 对象的 `IfcProject`。`Architecture`、`Structure` 和 `Openings` 图层仅用于组织；元素自身的图层后缀决定其 IFC 类别。
+这会生成一个包含 `IfcSite`、`IfcBuilding` 和两个 `IfcBuildingStorey` 对象的 `IfcProject`。`Architecture`、`Structure` 和 `Openings` 图层仅用于组织；元素自身的图层后缀决定其 IFC 类别。每个包含对象的 Rhino 图层还会导出为 IFC `IfcPresentationLayerAssignment`，供导入软件重建源图层。
 
 如果空间路径中缺少某一部分，导出器会创建默认的 site、building 和 storey 容器，使元素仍处于有效的 IFC 层级中。每个导出的元素还会将完整的 Rhino 图层路径写入 `RhinoProperties.SourceLayer`。
 
