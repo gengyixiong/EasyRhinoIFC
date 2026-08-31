@@ -16,3 +16,27 @@
 - `RhinoIfc/` — plugin source; `GH_RhinoIfc/` — Grasshopper components; `RhinoIfc.Tests/` — tests (`RhinoIfc.sln`).
 - `build.bat` — build entry point; `manifest.yml` — Yak package manifest.
 - `spec/` — design notes; `samplefiles/` — IFC fixtures; `docs/` is currently untracked.
+
+## Release workflow
+
+`Directory.Build.props` and `manifest.yml` must use the same release version.
+
+To prepare a release, always run:
+
+    .\scripts\release.ps1 -Version X.Y.Z
+
+The release script is responsible for:
+- synchronizing version metadata
+- building the Release configuration
+- running tests
+- staging runtime dependencies
+- generating `dist\EasyRhinoIFC-vX.Y.Z.zip`
+- validating version consistency
+
+Do not manually package files from `bin\Release`.
+
+Do not commit, push, create tags, or publish GitHub releases unless explicitly requested by the operator.
+
+Release tags use:
+
+    vX.Y.Z

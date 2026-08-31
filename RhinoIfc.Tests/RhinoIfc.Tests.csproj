@@ -9,5 +9,6 @@
     <Compile Include="..\RhinoIfc\Export\ClassMapper.cs" Link="Export\ClassMapper.cs" />
     <Compile Include="..\RhinoIfc\Export\InstanceGraphTraversal.cs" Link="Export\InstanceGraphTraversal.cs" />
     <Compile Include="..\RhinoIfc\Export\PresentationLayerExporter.cs" Link="Export\PresentationLayerExporter.cs" />
+    <Compile Include="..\RhinoIfc\Export\MappedRepresentationFactory.cs" Link="Export\MappedRepresentationFactory.cs" />
   </ItemGroup>
 </Project>

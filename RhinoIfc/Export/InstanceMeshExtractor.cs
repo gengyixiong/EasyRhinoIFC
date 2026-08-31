@@ -47,6 +47,25 @@ namespace RhinoIfc.Export
             return geometry.Count == 0 ? null : geometry.ToArray();
         }
 
+        /// <summary>
+        /// Extracts a top-level block definition without applying an occurrence
+        /// transform. Nested blocks are deliberately left to the flattening path.
+        /// </summary>
+        public static ExportGeometry[] ExtractDefinition(InstanceObject instance)
+        {
+            var definition = instance?.InstanceDefinition;
+            if (definition == null || definition.IsDeleted) return null;
+
+            var children = definition.GetObjects();
+            if (children == null || children.Any(child => child is InstanceObject)) return null;
+
+            var geometry = new System.Collections.Generic.List<ExportGeometry>();
+            foreach (var child in children)
+                AppendGeometry(child, Transform.Identity, geometry);
+
+            return geometry.Count == 0 ? null : geometry.ToArray();
+        }
+
         internal static Transform CombineTransforms(Transform parentTransform, Transform instanceTransform)
         {
             // Rhino applies the right-hand transform first. Definition geometry is

@@ -1,44 +1,58 @@
 @echo off
 setlocal
+pushd "%~dp0"
 
 echo === Building EasyRhinoIFC ===
-dotnet build RhinoIfc\RhinoIfc.csproj -c Release
-if errorlevel 1 (
-    echo BUILD FAILED
-    exit /b 1
-)
+dotnet build RhinoIfc.sln -c Release
+if errorlevel 1 goto :build_failed
 
 echo.
-echo === Staging for Yak packaging ===
-set STAGE=yak_stage
-if exist %STAGE% rd /s /q %STAGE%
-mkdir %STAGE%
+echo === Staging release files ===
+set "STAGE=yak_stage"
+if exist "%STAGE%" rd /s /q "%STAGE%"
+mkdir "%STAGE%"
+if errorlevel 1 goto :stage_failed
 
-:: Copy plugin output
-copy RhinoIfc\bin\Release\EasyRhinoIFC.rhp %STAGE%\EasyRhinoIFC.rhp
-
-:: Copy xBIM managed dependencies
-copy RhinoIfc\bin\Release\Xbim.*.dll %STAGE%\
-copy RhinoIfc\bin\Release\Microsoft.Extensions.*.dll %STAGE%\ 2>nul
-copy RhinoIfc\bin\Release\Microsoft.Bcl.*.dll %STAGE%\ 2>nul
-copy RhinoIfc\bin\Release\System.*.dll %STAGE%\ 2>nul
-
-:: Copy manifest
-copy manifest.yml %STAGE%\
+copy /y "RhinoIfc\bin\Release\EasyRhinoIFC.rhp" "%STAGE%\" >nul || goto :stage_failed
+copy /y "GH_RhinoIfc\bin\Release\GH_EasyRhinoIFC.dll" "%STAGE%\" >nul || goto :stage_failed
+copy /y "RhinoIfc\bin\Release\*.dll" "%STAGE%\" >nul || goto :stage_failed
+copy /y "manifest.yml" "%STAGE%\" >nul || goto :stage_failed
 
 echo.
 echo === Building Yak package ===
-cd %STAGE%
-yak build
+where yak >nul 2>nul
 if errorlevel 1 (
-    echo YAK BUILD FAILED - is yak.exe on PATH?
-    echo You can install it: https://developer.rhino3d.com/guides/yak/
-    cd ..
-    exit /b 1
+    echo Yak CLI not found; release files are staged in %STAGE%\.
+    goto :done
 )
 
-cd ..
+pushd "%STAGE%"
+yak build
+if errorlevel 1 (
+    popd
+    goto :yak_failed
+)
+popd
+
+:done
 echo.
 echo === Done ===
-echo Yak package created in %STAGE%\
-dir %STAGE%\*.yak 2>nul
+echo Release files created in %STAGE%\
+if exist "%STAGE%\*.yak" dir /b "%STAGE%\*.yak"
+popd
+exit /b 0
+
+:build_failed
+echo BUILD FAILED
+popd
+exit /b 1
+
+:stage_failed
+echo STAGING FAILED
+popd
+exit /b 1
+
+:yak_failed
+echo YAK BUILD FAILED
+popd
+exit /b 1

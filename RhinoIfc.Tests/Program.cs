@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using RhinoIfc.Export;
 using Xbim.Common.Step21;
 using Xbim.Ifc;
 using Xbim.Ifc4.GeometricModelResource;
+using Xbim.Ifc4.GeometryResource;
 using Xbim.Ifc4.PresentationOrganizationResource;
 using Xbim.Ifc4.RepresentationResource;
 using Xbim.IO;
@@ -60,6 +62,7 @@ namespace RhinoIfc.Tests
 
             ValidateInstanceTraversal();
             ValidatePresentationLayers();
+            ValidateMappedRepresentations();
             Console.WriteLine("All export tests passed.");
         }
 
@@ -136,6 +139,50 @@ namespace RhinoIfc.Tests
             finally
             {
                 if (File.Exists(outputPath)) File.Delete(outputPath);
+            }
+        }
+
+        private static void ValidateMappedRepresentations()
+        {
+            using (var model = IfcStore.Create(new XbimEditorCredentials
+            {
+                ApplicationDevelopersName = "EasyRhinoIFC",
+                ApplicationFullName = "EasyRhinoIFC Tests",
+                ApplicationIdentifier = "EasyRhinoIFC.Tests",
+                ApplicationVersion = "1",
+                EditorsFamilyName = "Test",
+                EditorsGivenName = "",
+                EditorsOrganisationName = ""
+            }, XbimSchemaVersion.Ifc4, XbimStoreType.InMemoryModel))
+            using (var transaction = model.BeginTransaction("Mapped representations"))
+            {
+                var context = model.Instances.New<IfcGeometricRepresentationContext>();
+                var definitionRepresentation = model.Instances.New<IfcShapeRepresentation>(representation =>
+                {
+                    representation.ContextOfItems = context;
+                    representation.RepresentationIdentifier = "Body";
+                    representation.RepresentationType = "Tessellation";
+                });
+                var map = MappedRepresentationFactory.CreateMap(model, definitionRepresentation);
+
+                for (var i = 0; i < 2; i++)
+                {
+                    var transform = model.Instances.New<IfcCartesianTransformationOperator3D>(operation =>
+                    {
+                        operation.LocalOrigin = model.Instances.New<IfcCartesianPoint>(point => point.SetXYZ(i, 0, 0));
+                        operation.Scale = 1;
+                    });
+                    MappedRepresentationFactory.CreateOccurrence(model, context, map, transform);
+                }
+
+                AssertEqual("1", model.Instances.OfType<IfcRepresentationMap>().Count().ToString());
+                var mappedItems = model.Instances.OfType<IfcMappedItem>().ToArray();
+                AssertEqual("2", mappedItems.Length.ToString());
+                AssertEqual(map.EntityLabel.ToString(), mappedItems[0].MappingSource.EntityLabel.ToString());
+                AssertEqual(map.EntityLabel.ToString(), mappedItems[1].MappingSource.EntityLabel.ToString());
+                AssertEqual("MappedRepresentation", model.Instances.OfType<IfcShapeRepresentation>()
+                    .Last().RepresentationType.ToString());
+                transaction.Commit();
             }
         }
 

@@ -129,7 +129,13 @@ Build outputs:
 - `RhinoIfc\bin\Release\EasyRhinoIFC.rhp`
 - `GH_RhinoIfc\bin\Release\GH_EasyRhinoIFC.dll`
 
-Run `build.bat` after installing the Yak CLI to create the Yak package.
+Create a release ZIP and update every version field with one command:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\release.ps1 -Version 0.3.1
+```
+
+This writes `dist\EasyRhinoIFC-v0.3.1.zip` and reuses `build.bat`; when the Yak CLI is available, it also creates the Yak package.
 
 ## Dependencies and license
 
@@ -267,7 +273,13 @@ dotnet build RhinoIfc.sln -c Release
 - `RhinoIfc\bin\Release\EasyRhinoIFC.rhp`
 - `GH_RhinoIfc\bin\Release\GH_EasyRhinoIFC.dll`
 
-安装 Yak CLI 后运行 `build.bat`，即可创建 Yak 软件包。
+用一条命令同步所有版本号并创建发布 ZIP：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\release.ps1 -Version 0.3.1
+```
+
+该脚本会生成 `dist\EasyRhinoIFC-v0.3.1.zip` 并复用 `build.bat`；如果系统中有 Yak CLI，还会同时创建 Yak 软件包。
 
 ## 依赖与许可证
 

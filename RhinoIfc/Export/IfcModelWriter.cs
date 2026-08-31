@@ -38,7 +38,7 @@ namespace RhinoIfc.Export
                 ApplicationDevelopersName = "EasyRhinoIFC",
                 ApplicationFullName = "EasyRhinoIFC Plugin",
                 ApplicationIdentifier = "EasyRhinoIFC",
-                ApplicationVersion = "0.2.2",
+                ApplicationVersion = typeof(IfcModelWriter).Assembly.GetName().Version.ToString(3),
                 EditorsFamilyName = System.Environment.UserName,
                 EditorsGivenName = "",
                 EditorsOrganisationName = ""
@@ -78,6 +78,11 @@ namespace RhinoIfc.Export
                 var storeyCache = new Dictionary<string, IfcBuildingStorey>(StringComparer.OrdinalIgnoreCase);
                 var defaultBuildings = new Dictionary<IfcSite, IfcBuilding>();
                 var defaultStoreys = new Dictionary<IfcBuilding, IfcBuildingStorey>();
+                var blockUseCounts = exportObjects
+                    .OfType<InstanceObject>()
+                    .Where(instance => instance.InstanceDefinition != null && !instance.InstanceDefinition.IsDeleted)
+                    .GroupBy(instance => instance.InstanceDefinition.Index)
+                    .ToDictionary(group => group.Key, group => group.Count());
 
                 using (var txn = model.BeginTransaction("Elements"))
                 {
@@ -204,11 +209,15 @@ namespace RhinoIfc.Export
 
                     int seq = 0;
                     var presentationLayers = new Dictionary<Guid, IfcPresentationLayerAssignment>();
+                    var blockExporter = new BlockRepresentationExporter(
+                        model, doc, geomContext, unitScale, blockUseCounts, presentationLayers);
                     foreach (var rhinoObj in exportObjects)
                     {
                         IfcShapeRepresentation representation = null;
                         ExportGeometry[] exportGeometry = null;
-                        if (rhinoObj.Geometry is Brep brep)
+                        bool usesMappedGeometry = rhinoObj is InstanceObject instance &&
+                            blockExporter.TryCreateMappedRepresentation(instance, out representation);
+                        if (representation == null && rhinoObj.Geometry is Brep brep)
                         {
                             representation = GeometryExporter.CreatePlanarBrepRepresentation(
                                 model, geomContext, brep, unitScale, doc.ModelAbsoluteTolerance);
@@ -244,7 +253,7 @@ namespace RhinoIfc.Export
                         if (string.IsNullOrWhiteSpace(elementName)) elementName = $"{layer.Name} {++seq}";
 
                         var element = CreateElement(model, ifcClassName, elementName);
-                        if (exportGeometry == null)
+                        if (exportGeometry == null && !usesMappedGeometry)
                         {
                             ColorExporter.ApplyColor(model, doc, rhinoObj, representation);
                         }

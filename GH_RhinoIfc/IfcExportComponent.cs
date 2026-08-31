@@ -78,7 +78,7 @@ namespace GH_RhinoIfc
                     ApplicationDevelopersName = "EasyRhinoIFC",
                     ApplicationFullName = "EasyRhinoIFC GH",
                     ApplicationIdentifier = "EasyRhinoIFC",
-                    ApplicationVersion = "0.2.2",
+                    ApplicationVersion = typeof(IfcModelWriter).Assembly.GetName().Version.ToString(3),
                     EditorsFamilyName = System.Environment.UserName,
                     EditorsGivenName = "",
                     EditorsOrganisationName = ""

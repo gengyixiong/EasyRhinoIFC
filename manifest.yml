@@ -1,5 +1,5 @@
 name: easyrhinoifc
-version: 0.3.0
+version: 1.0.0
 authors:
   - Yixiong Geng
 description: IFC4 export for Rhino using xBIM, with automatic layer classification
