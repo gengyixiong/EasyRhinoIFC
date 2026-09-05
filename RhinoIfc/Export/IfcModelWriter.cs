@@ -28,7 +28,9 @@ namespace RhinoIfc.Export
     {
         public int Export(RhinoDoc doc, IEnumerable<RhinoObject> objects, string outputPath)
         {
-            var exportObjects = objects?.Where(o => o != null).ToArray() ?? Array.Empty<RhinoObject>();
+            var exportObjects = objects?.Where(o => o != null &&
+                o.Attributes.LayerIndex >= 0 && o.Attributes.LayerIndex < doc.Layers.Count &&
+                doc.Layers[o.Attributes.LayerIndex] != null).ToArray() ?? Array.Empty<RhinoObject>();
             var projectLayerName = exportObjects
                 .SelectMany(o => GetLayerSegments(doc.Layers[o.Attributes.LayerIndex].FullPath))
                 .FirstOrDefault(s => ClassMapper.MapLayerToIfcClass(s) == "IfcProject");
@@ -253,21 +255,31 @@ namespace RhinoIfc.Export
                         if (string.IsNullOrWhiteSpace(elementName)) elementName = $"{layer.Name} {++seq}";
 
                         var element = CreateElement(model, ifcClassName, elementName);
-                        if (exportGeometry == null && !usesMappedGeometry)
+                        switch (ExportPostProcessing.Select(usesMappedGeometry, exportGeometry))
                         {
-                            ColorExporter.ApplyColor(model, doc, rhinoObj, representation);
-                        }
-                        else
-                        {
-                            var items = representation.Items.OfType<IfcRepresentationItem>().ToArray();
-                            for (int i = 0; i < exportGeometry.Length && i < items.Length; i++)
-                            {
-                                ColorExporter.ApplyColor(model, doc, exportGeometry[i].SourceObject, items[i]);
-                                var sourceLayer = doc.Layers[
-                                    exportGeometry[i].SourceObject.Attributes.LayerIndex];
-                                PresentationLayerExporter.Assign(
-                                    model, presentationLayers, sourceLayer.Id, sourceLayer.Name, items[i]);
-                            }
+                            case ExportPostProcessingPath.Mapped:
+                                // Definition colors and layers were assigned when its map was created.
+                                break;
+                            case ExportPostProcessingPath.Object:
+                                ColorExporter.ApplyColor(model, doc, rhinoObj, representation);
+                                break;
+                            case ExportPostProcessingPath.Extracted:
+                                var items = representation.Items.OfType<IfcRepresentationItem>().ToArray();
+                                for (int i = 0; i < exportGeometry.Length && i < items.Length; i++)
+                                {
+                                    var sourceObject = exportGeometry[i].SourceObject;
+                                    if (sourceObject == null) continue;
+
+                                    ColorExporter.ApplyColor(model, doc, sourceObject, items[i]);
+                                    int sourceLayerIndex = sourceObject.Attributes.LayerIndex;
+                                    if (sourceLayerIndex < 0 || sourceLayerIndex >= doc.Layers.Count) continue;
+
+                                    var sourceLayer = doc.Layers[sourceLayerIndex];
+                                    if (sourceLayer != null)
+                                        PresentationLayerExporter.Assign(
+                                            model, presentationLayers, sourceLayer.Id, sourceLayer.Name, items[i]);
+                                }
+                                break;
                         }
                         element.Representation = model.Instances.New<IfcProductDefinitionShape>(pds =>
                         {

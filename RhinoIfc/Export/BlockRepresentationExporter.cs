@@ -63,10 +63,17 @@ namespace RhinoIfc.Export
                     var items = definitionRepresentation.Items.OfType<IfcRepresentationItem>().ToArray();
                     for (var i = 0; i < geometry.Length && i < items.Length; i++)
                     {
-                        ColorExporter.ApplyColor(_model, _document, geometry[i].SourceObject, items[i]);
-                        var layer = _document.Layers[geometry[i].SourceObject.Attributes.LayerIndex];
-                        PresentationLayerExporter.Assign(
-                            _model, _presentationLayers, layer.Id, layer.Name, items[i]);
+                        var sourceObject = geometry[i].SourceObject;
+                        if (sourceObject == null) continue;
+
+                        ColorExporter.ApplyColor(_model, _document, sourceObject, items[i]);
+                        int layerIndex = sourceObject.Attributes.LayerIndex;
+                        if (layerIndex < 0 || layerIndex >= _document.Layers.Count) continue;
+
+                        var layer = _document.Layers[layerIndex];
+                        if (layer != null)
+                            PresentationLayerExporter.Assign(
+                                _model, _presentationLayers, layer.Id, layer.Name, items[i]);
                     }
 
                     map = MappedRepresentationFactory.CreateMap(_model, definitionRepresentation);

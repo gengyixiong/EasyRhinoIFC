@@ -63,6 +63,7 @@ namespace RhinoIfc.Tests
             ValidateInstanceTraversal();
             ValidatePresentationLayers();
             ValidateMappedRepresentations();
+            ValidateMappedPostProcessing();
             Console.WriteLine("All export tests passed.");
         }
 
@@ -184,6 +185,16 @@ namespace RhinoIfc.Tests
                     .Last().RepresentationType.ToString());
                 transaction.Commit();
             }
+        }
+
+        private static void ValidateMappedPostProcessing()
+        {
+            AssertEqual(ExportPostProcessingPath.Mapped.ToString(),
+                ExportPostProcessing.Select<object>(true, null).ToString());
+            AssertEqual(ExportPostProcessingPath.Object.ToString(),
+                ExportPostProcessing.Select<object>(false, null).ToString());
+            AssertEqual(ExportPostProcessingPath.Extracted.ToString(),
+                ExportPostProcessing.Select(false, new object[0]).ToString());
         }
 
         private static void AssertEqual(string expected, string actual)
